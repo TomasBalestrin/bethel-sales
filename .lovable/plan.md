@@ -1,139 +1,152 @@
 
-# Plano: Converter Painéis Laterais em Paginas Completas
+
+# Plano: Atribuir Cores Automaticamente por Faturamento
 
 ## Resumo
 
-Transformar o CloserPanel e ParticipantPanel de paineis laterais (Sheet) em paginas completas dedicadas, acessadas atraves de rotas dinamicas.
+Quando um participante for importado via webhook, sua cor sera automaticamente definida com base na faixa de faturamento informada.
 
-## Mudanca Visual
+## Mapeamento Cor x Faturamento
 
-```text
-ANTES (Sheet lateral)                    DEPOIS (Pagina completa)
-+----------------+--------+              +---------------------------+
-|   Lista de     | Sheet  |              |   Detalhes do Closer      |
-|   Closers      | Panel  |      ->      |   (pagina inteira)        |
-|                |        |              |                           |
-+----------------+--------+              +---------------------------+
+| Faturamento | Cor |
+|-------------|-----|
+| Ate R$ 5.000,00 | Rosa |
+| R$ 5.000,00 ate 10.000,00 | Preto |
+| R$ 10.000,00 ate 20.000,00 | Azul Claro |
+| R$ 20.000,00 ate 50.000,00 | Verde (novo) |
+| R$ 50.000,00 ate 100.000,00 | Dourado |
+| R$ 100.000,00 ate 250.000,00 | Laranja |
+| R$ 250.000,00 ate 500.000,00 | Laranja |
+| Acima de R$ 500.000,00 | Laranja |
+
+## Alteracoes Necessarias
+
+### 1. Banco de Dados - Adicionar cor "verde"
+
+O enum `participant_color` atual tem: `rosa`, `preto`, `azul_claro`, `dourado`, `laranja`
+
+Precisa adicionar: `verde`
+
+```sql
+ALTER TYPE participant_color ADD VALUE 'verde';
 ```
 
-## Arquivos a Criar
+### 2. Webhook - Funcao para determinar cor
 
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/pages/CloserDetail.tsx` | Pagina completa de detalhes do closer |
-| `src/pages/ParticipantDetail.tsx` | Pagina completa de detalhes do participante |
+Adicionar funcao no `webhook-participants/index.ts`:
+
+```typescript
+function getColorFromFaturamento(faturamento: string | null): string | null {
+  if (!faturamento) return null;
+  
+  const lower = faturamento.toLowerCase();
+  
+  if (lower.includes("ate r$ 5.000") || lower.includes("até r$ 5.000")) {
+    return "rosa";
+  }
+  if (lower.includes("5.000,00 ate 10.000") || lower.includes("5.000,00 até 10.000")) {
+    return "preto";
+  }
+  if (lower.includes("10.000,00 ate 20.000") || lower.includes("10.000,00 até 20.000")) {
+    return "azul_claro";
+  }
+  if (lower.includes("20.000,00 ate 50.000") || lower.includes("20.000,00 até 50.000")) {
+    return "verde";
+  }
+  if (lower.includes("50.000,00 ate 100.000") || lower.includes("50.000,00 até 100.000")) {
+    return "dourado";
+  }
+  if (lower.includes("100.000,00 ate") || lower.includes("100.000,00 até") ||
+      lower.includes("250.000,00 ate") || lower.includes("250.000,00 até") ||
+      lower.includes("acima de")) {
+    return "laranja";
+  }
+  
+  return null;
+}
+```
+
+### 3. Webhook - Aplicar cor na insercao
+
+Modificar a logica de insercao para incluir a cor:
+
+```typescript
+participantData = {
+  ...extracted,
+  cor: getColorFromFaturamento(extracted.faturamento),
+  webhook_data: participant,
+};
+```
+
+### 4. Frontend - Adicionar cor verde
+
+Atualizar os arquivos que definem as cores:
+
+**tailwind.config.ts** - Adicionar cor verde:
+```typescript
+participant: {
+  rosa: "#FF69B4",
+  preto: "#1a1a1a", 
+  "azul-claro": "#87CEEB",
+  dourado: "#FFD700",
+  laranja: "#FF8C00",
+  verde: "#22C55E", // nova cor
+}
+```
+
+**src/pages/Participants.tsx** - Adicionar no colorMap:
+```typescript
+const colorMap: Record<string, string> = {
+  rosa: "bg-participant-rosa",
+  preto: "bg-participant-preto",
+  azul_claro: "bg-participant-azul-claro",
+  dourado: "bg-participant-dourado",
+  laranja: "bg-participant-laranja",
+  verde: "bg-participant-verde", // nova cor
+};
+```
+
+**src/pages/ParticipantDetail.tsx** - Adicionar na lista de cores:
+```typescript
+const colors = [
+  { value: "rosa", label: "Rosa", class: "bg-participant-rosa" },
+  { value: "preto", label: "Preto", class: "bg-participant-preto" },
+  { value: "azul_claro", label: "Azul Claro", class: "bg-participant-azul-claro" },
+  { value: "verde", label: "Verde", class: "bg-participant-verde" }, // nova cor
+  { value: "dourado", label: "Dourado", class: "bg-participant-dourado" },
+  { value: "laranja", label: "Laranja", class: "bg-participant-laranja" },
+];
+```
 
 ## Arquivos a Modificar
 
 | Arquivo | Alteracao |
 |---------|-----------|
-| `src/App.tsx` | Adicionar rotas `/closers/:id` e `/participantes/:id` |
-| `src/pages/Closers.tsx` | Navegar para rota ao clicar (remover Sheet) |
-| `src/pages/Participants.tsx` | Navegar para rota ao clicar (remover Sheet) |
+| Banco de dados | Adicionar valor `verde` ao enum `participant_color` |
+| `supabase/functions/webhook-participants/index.ts` | Adicionar funcao `getColorFromFaturamento` e aplicar na importacao |
+| `tailwind.config.ts` | Adicionar cor `participant-verde` |
+| `src/pages/Participants.tsx` | Adicionar `verde` no `colorMap` |
+| `src/pages/ParticipantDetail.tsx` | Adicionar `verde` na lista de cores |
 
-## Detalhes Tecnicos
+## Comportamento
 
-### 1. Nova Rota: CloserDetail (`/closers/:id`)
+1. **Novos participantes**: Cor atribuida automaticamente na importacao
+2. **Participantes existentes**: Cor permanece como esta (pode ser alterada manualmente ou via script de atualizacao)
+3. **Edicao manual**: O usuario ainda pode alterar a cor manualmente na tela de detalhes
 
-```tsx
-// src/pages/CloserDetail.tsx
-// - Buscar closer pelo ID da URL usando useParams
-// - Layout em pagina completa com botao de voltar
-// - Reutilizar toda a logica existente do CloserPanel
-// - Design responsivo: cards de metricas em grid
-// - Lista de participantes atribuidos com scroll
+## Opcional - Atualizar Participantes Existentes
+
+Apos a implementacao, executar SQL para atualizar os participantes que ja foram importados:
+
+```sql
+UPDATE participants 
+SET cor = 'rosa' 
+WHERE faturamento ILIKE '%Até R$ 5.000%' AND cor IS NULL;
+
+UPDATE participants 
+SET cor = 'preto' 
+WHERE faturamento ILIKE '%5.000,00 até 10.000%' AND cor IS NULL;
+
+-- ... continuar para outras faixas
 ```
 
-### 2. Nova Rota: ParticipantDetail (`/participantes/:id`)
-
-```tsx
-// src/pages/ParticipantDetail.tsx
-// - Buscar participante pelo ID da URL usando useParams
-// - Layout em pagina completa com botao de voltar
-// - Manter todas as abas (Dados, Vendas, DISC, Acoes)
-// - Formulario de edicao em tela cheia
-// - Dialogos de venda e atribuicao mantidos
-```
-
-### 3. Atualizacao de Rotas (`src/App.tsx`)
-
-```tsx
-// Adicionar dentro do AppLayout:
-<Route path="/closers/:id" element={<CloserDetail />} />
-<Route path="/participantes/:id" element={<ParticipantDetail />} />
-```
-
-### 4. Navegacao nas Listagens
-
-```tsx
-// Closers.tsx - ao clicar no card:
-onClick={() => navigate(`/closers/${closer.id}`)}
-
-// Participants.tsx - ao clicar no card:
-onClick={() => navigate(`/participantes/${participant.id}`)}
-```
-
-## Layout das Novas Paginas
-
-### CloserDetail
-
-```text
-+-------------------------------------------+
-| <- Voltar    Closers / Deyvid             |
-+-------------------------------------------+
-| [Avatar] Deyvid                           |
-|          Closer                           |
-+-------------------------------------------+
-| Oportunidades | Vendas | Conversao | Valor|
-|      0        |   0    |   0.0%    | R$ 0 |
-+-------------------------------------------+
-| Valor de Entradas: R$ 0,00                |
-+-------------------------------------------+
-| Participantes Atribuidos     [Filtro: v]  |
-| +---------------------------------------+ |
-| | Nome do Participante    [D1][D2][Opp] | |
-| | Nome do Participante 2  [D1]          | |
-| +---------------------------------------+ |
-+-------------------------------------------+
-```
-
-### ParticipantDetail
-
-```text
-+-------------------------------------------+
-| <- Voltar    Participantes / Joao Silva   |
-+-------------------------------------------+
-| [Avatar] Joao Silva                       |
-|          [Dia 1] [Dia 2]                  |
-+-------------------------------------------+
-| [Dados] [Vendas] [DISC] [Acoes]           |
-+-------------------------------------------+
-| Conteudo da aba selecionada em tela cheia |
-| com mais espaco para formularios          |
-| e visualizacao de dados                   |
-+-------------------------------------------+
-```
-
-## Beneficios
-
-1. Mais espaco para visualizacao de dados
-2. Melhor experiencia mobile
-3. URLs compartilhaveis para closers/participantes especificos
-4. Navegacao mais intuitiva com botao voltar
-5. Melhor organizacao visual dos formularios
-
-## Componentes Reutilizados
-
-- Avatar, Badge, Card, Tabs (UI components)
-- SalesTab (aba de vendas do participante)
-- Toda logica de fetch e update dos dados
-- Dialogos de venda e atribuicao
-
-## Ordem de Implementacao
-
-1. Criar `CloserDetail.tsx` (converter CloserPanel para pagina)
-2. Criar `ParticipantDetail.tsx` (converter ParticipantPanel para pagina)
-3. Atualizar `App.tsx` com novas rotas
-4. Atualizar `Closers.tsx` para navegar via useNavigate
-5. Atualizar `Participants.tsx` para navegar via useNavigate
-6. Remover imports dos Panels antigos (opcional - podem ser deletados)
