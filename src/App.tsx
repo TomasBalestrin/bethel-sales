@@ -9,7 +9,9 @@ import { AdminRoute } from "@/components/layout/AdminRoute";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Participants from "./pages/Participants";
+import ParticipantDetail from "./pages/ParticipantDetail";
 import Closers from "./pages/Closers";
+import CloserDetail from "./pages/CloserDetail";
 import Sales from "./pages/Sales";
 import Reports from "./pages/Reports";
 import AdminPanel from "./pages/AdminPanel";
@@ -31,7 +33,9 @@ const App = () => (
             <Route element={<AppLayout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/participantes" element={<Participants />} />
+              <Route path="/participantes/:id" element={<ParticipantDetail />} />
               <Route path="/closers" element={<Closers />} />
+              <Route path="/closers/:id" element={<CloserDetail />} />
               <Route path="/vendas" element={<Sales />} />
               <Route
                 path="/relatorios"

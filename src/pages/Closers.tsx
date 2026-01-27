@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, UserCog, TrendingUp, DollarSign, Target } from "lucide-react";
-import { CloserPanel } from "@/components/closers/CloserPanel";
 
 interface CloserStats {
   id: string;
@@ -22,12 +22,12 @@ interface CloserStats {
 }
 
 export default function Closers() {
+  const navigate = useNavigate();
   const { isAdmin, profile } = useAuth();
   const { toast } = useToast();
   const [closers, setClosers] = useState<CloserStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCloser, setSelectedCloser] = useState<CloserStats | null>(null);
 
   const fetchClosers = async () => {
     setIsLoading(true);
@@ -166,7 +166,7 @@ export default function Closers() {
             <Card
               key={closer.id}
               className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/20"
-              onClick={() => setSelectedCloser(closer)}
+              onClick={() => navigate(`/closers/${closer.id}`)}
             >
               <CardContent className="p-5">
                 <div className="flex items-center gap-4 mb-4">
@@ -234,11 +234,6 @@ export default function Closers() {
         </div>
       )}
 
-      <CloserPanel
-        closer={selectedCloser}
-        onClose={() => setSelectedCloser(null)}
-        isAdmin={isAdmin}
-      />
     </div>
   );
 }
