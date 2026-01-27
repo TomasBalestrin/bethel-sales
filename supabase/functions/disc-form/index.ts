@@ -7,30 +7,250 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-const DISC_QUESTIONS = [
-  { id: 1, text: "Quando enfrento um desafio, eu prefiro:", options: ["Agir rapidamente e assumir o controle", "Conversar com outros e buscar apoio", "Analisar cuidadosamente antes de agir", "Seguir um plano estabelecido"] },
-  { id: 2, text: "Em reuniões, eu geralmente:", options: ["Lidero a discussão e tomo decisões", "Animo o grupo e trago energia", "Ouço mais do que falo", "Faço perguntas detalhadas"] },
-  { id: 3, text: "Quando tenho um prazo apertado:", options: ["Fico focado e pressiono para resultados", "Mantenho o otimismo e motivo a equipe", "Trabalho de forma constante e organizada", "Verifico todos os detalhes antes de entregar"] },
-  { id: 4, text: "Meus colegas me descreveriam como:", options: ["Determinado e direto", "Entusiasta e comunicativo", "Calmo e confiável", "Preciso e analítico"] },
-  { id: 5, text: "Ao tomar decisões importantes:", options: ["Decido rapidamente com base na intuição", "Consulto pessoas de confiança", "Penso no impacto a longo prazo", "Analiso todos os dados disponíveis"] },
-  { id: 6, text: "Em situações de conflito:", options: ["Enfrento diretamente o problema", "Tento mediar e manter a harmonia", "Evito confrontos e busco estabilidade", "Busco fatos para resolver logicamente"] },
-  { id: 7, text: "O que mais me motiva é:", options: ["Conquistar resultados e vencer", "Reconhecimento e interação social", "Ambiente estável e harmonioso", "Qualidade e excelência no trabalho"] },
-  { id: 8, text: "Quando aprendo algo novo:", options: ["Quero aplicar imediatamente", "Prefiro discutir com outros", "Gosto de praticar no meu ritmo", "Preciso entender todos os detalhes"] },
-  { id: 9, text: "Meu maior medo profissional é:", options: ["Perder o controle da situação", "Ser ignorado ou rejeitado", "Mudanças bruscas e instabilidade", "Cometer erros ou ser criticado"] },
-  { id: 10, text: "Em um projeto em equipe:", options: ["Assumo a liderança naturalmente", "Mantenho todos motivados e conectados", "Apoio o time e garanto a continuidade", "Cuido da qualidade e dos processos"] },
-  { id: 11, text: "Quando recebo feedback negativo:", options: ["Respondo defendendo minha posição", "Fico afetado emocionalmente", "Aceito e processo internamente", "Peço exemplos específicos para entender"] },
-  { id: 12, text: "Minha abordagem para metas é:", options: ["Ambiciosa e focada em resultados rápidos", "Flexível e adaptável às circunstâncias", "Consistente e de longo prazo", "Detalhada com métricas claras"] },
-  { id: 13, text: "Em uma negociação:", options: ["Vou direto ao ponto e busco fechar", "Construo relacionamento antes de negociar", "Busco um acordo que satisfaça todos", "Analiso todas as condições antes de decidir"] },
-  { id: 14, text: "O que mais me irrita é:", options: ["Lentidão e falta de ação", "Frieza e falta de entusiasmo", "Conflitos e pressão excessiva", "Desorganização e falta de lógica"] },
-  { id: 15, text: "Meu estilo de comunicação é:", options: ["Direto e objetivo", "Expressivo e persuasivo", "Paciente e acolhedor", "Preciso e fundamentado"] }
+// ==========================================
+// PERGUNTAS SITUACIONAIS COM MAPEAMENTO DUPLO
+// ==========================================
+const ARCHETYPE_QUESTIONS = [
+  {
+    id: 1,
+    text: "É sábado à noite. O que você prefere fazer?",
+    options: [
+      { text: "Organizar um jantar na minha casa e receber os amigos", disc: "I", archetype: "Cuidador" },
+      { text: "Ir a um lugar novo que nunca explorei", disc: "D", archetype: "Explorador" },
+      { text: "Maratonar uma série ou ler um bom livro", disc: "S", archetype: "Sábio" },
+      { text: "Sair para uma festa ou evento animado", disc: "I", archetype: "Bobo da Corte" }
+    ]
+  },
+  {
+    id: 2,
+    text: "Você ganhou R$50 mil inesperados. Qual seu primeiro pensamento?",
+    options: [
+      { text: "Vou investir e fazer esse dinheiro crescer", disc: "C", archetype: "Governante" },
+      { text: "Vou realizar aquele sonho que sempre adiei", disc: "D", archetype: "Herói" },
+      { text: "Vou ajudar pessoas que precisam", disc: "S", archetype: "Cuidador" },
+      { text: "Vou viajar e viver experiências incríveis", disc: "I", archetype: "Explorador" }
+    ]
+  },
+  {
+    id: 3,
+    text: "Em um grupo de amigos, você geralmente é...",
+    options: [
+      { text: "Quem faz todo mundo rir", disc: "I", archetype: "Bobo da Corte" },
+      { text: "Quem as pessoas procuram para desabafar", disc: "S", archetype: "Cuidador" },
+      { text: "Quem tem as ideias mais criativas", disc: "D", archetype: "Criador" },
+      { text: "Quem pesquisa e traz informações úteis", disc: "C", archetype: "Sábio" }
+    ]
+  },
+  {
+    id: 4,
+    text: "O que mais te incomoda nas pessoas?",
+    options: [
+      { text: "Quando são falsas ou desonestas", disc: "C", archetype: "Sábio" },
+      { text: "Quando são negativas e reclamam de tudo", disc: "I", archetype: "Inocente" },
+      { text: "Quando são lentas e enrolam demais", disc: "D", archetype: "Herói" },
+      { text: "Quando são frias e não se importam com os outros", disc: "S", archetype: "Amante" }
+    ]
+  },
+  {
+    id: 5,
+    text: "Se você fosse um personagem de filme, seria...",
+    options: [
+      { text: "O mentor sábio que guia o herói", disc: "C", archetype: "Sábio" },
+      { text: "O herói corajoso que salva o dia", disc: "D", archetype: "Herói" },
+      { text: "O artista incompreendido com visão única", disc: "D", archetype: "Criador" },
+      { text: "O amigo leal que está sempre presente", disc: "S", archetype: "Cara Comum" }
+    ]
+  },
+  {
+    id: 6,
+    text: "Quando você quer algo, você...",
+    options: [
+      { text: "Vai atrás até conseguir, custe o que custar", disc: "D", archetype: "Herói" },
+      { text: "Planeja com calma cada passo", disc: "C", archetype: "Governante" },
+      { text: "Espera o momento certo aparecer", disc: "S", archetype: "Inocente" },
+      { text: "Conversa com pessoas para conseguir apoio", disc: "I", archetype: "Amante" }
+    ]
+  },
+  {
+    id: 7,
+    text: "O que te dá mais satisfação?",
+    options: [
+      { text: "Criar algo do zero e ver funcionando", disc: "D", archetype: "Criador" },
+      { text: "Ajudar alguém a superar um problema", disc: "S", archetype: "Cuidador" },
+      { text: "Aprender algo novo e profundo", disc: "C", archetype: "Sábio" },
+      { text: "Viver momentos intensos e memoráveis", disc: "I", archetype: "Explorador" }
+    ]
+  },
+  {
+    id: 8,
+    text: "Como você lida quando algo dá errado?",
+    options: [
+      { text: "Fico bravo mas logo busco a solução", disc: "D", archetype: null },
+      { text: "Analiso o que aconteceu para não repetir", disc: "C", archetype: null },
+      { text: "Fico chateado mas aceito e sigo em frente", disc: "S", archetype: null },
+      { text: "Desabafo com alguém e me recomponho", disc: "I", archetype: null }
+    ]
+  },
+  {
+    id: 9,
+    text: "O que as pessoas mais admiram em você?",
+    options: [
+      { text: "Minha energia e entusiasmo", disc: "I", archetype: "Bobo da Corte" },
+      { text: "Minha determinação e força", disc: "D", archetype: "Herói" },
+      { text: "Minha calma e paciência", disc: "S", archetype: "Cuidador" },
+      { text: "Minha inteligência e conhecimento", disc: "C", archetype: "Sábio" }
+    ]
+  },
+  {
+    id: 10,
+    text: "Se pudesse escolher um superpoder, seria...",
+    options: [
+      { text: "Ler mentes para entender as pessoas", disc: "I", archetype: "Amante" },
+      { text: "Força sobre-humana para proteger quem amo", disc: "D", archetype: "Herói" },
+      { text: "Curar pessoas com o toque", disc: "S", archetype: "Cuidador" },
+      { text: "Conhecimento infinito sobre tudo", disc: "C", archetype: "Sábio" }
+    ]
+  },
+  {
+    id: 11,
+    text: "Em uma discussão, você tende a...",
+    options: [
+      { text: "Defender seu ponto com firmeza", disc: "D", archetype: null },
+      { text: "Tentar entender o lado do outro", disc: "S", archetype: null },
+      { text: "Usar argumentos lógicos e dados", disc: "C", archetype: null },
+      { text: "Usar humor para desarmar a tensão", disc: "I", archetype: null }
+    ]
+  },
+  {
+    id: 12,
+    text: "O que você mais valoriza na vida?",
+    options: [
+      { text: "Liberdade para fazer o que quiser", disc: "D", archetype: "Rebelde" },
+      { text: "Conexões verdadeiras com pessoas", disc: "I", archetype: "Amante" },
+      { text: "Paz e tranquilidade", disc: "S", archetype: "Inocente" },
+      { text: "Conhecimento e sabedoria", disc: "C", archetype: "Sábio" }
+    ]
+  }
 ];
 
-const DISC_MAPPING = {
-  0: "D", // Dominância
-  1: "I", // Influência
-  2: "S", // Estabilidade
-  3: "C", // Conformidade
+// ==========================================
+// DESCRIÇÕES DOS 12 ARQUÉTIPOS
+// ==========================================
+const ARCHETYPE_DATA: Record<string, { emoji: string; description: string }> = {
+  "Inocente": {
+    emoji: "✨",
+    description: "Você enxerga o mundo com otimismo e acredita genuinamente no bem. Sua pureza de intenções inspira as pessoas ao seu redor."
+  },
+  "Cara Comum": {
+    emoji: "🤝",
+    description: "Você valoriza conexões autênticas e pertencimento. As pessoas se sentem à vontade com você porque é genuíno e acessível."
+  },
+  "Herói": {
+    emoji: "🏆",
+    description: "Você tem coragem para enfrentar desafios e determinação para vencer. Não desiste fácil e inspira outros com sua força."
+  },
+  "Cuidador": {
+    emoji: "❤️",
+    description: "Você tem um coração generoso e se realiza ajudando os outros. Sua empatia e cuidado fazem diferença na vida das pessoas."
+  },
+  "Explorador": {
+    emoji: "🧭",
+    description: "Você busca liberdade e novas experiências. Sua curiosidade te leva a descobrir caminhos que outros nem imaginam."
+  },
+  "Rebelde": {
+    emoji: "⚡",
+    description: "Você questiona o status quo e não tem medo de ser diferente. Sua autenticidade abre portas para mudanças necessárias."
+  },
+  "Amante": {
+    emoji: "🔥",
+    description: "Você valoriza conexões profundas e momentos de intimidade. Sua paixão pela vida contagia quem está perto."
+  },
+  "Criador": {
+    emoji: "🎨",
+    description: "Você tem visão artística e necessidade de expressar sua originalidade. Suas criações deixam sua marca única no mundo."
+  },
+  "Bobo da Corte": {
+    emoji: "🎭",
+    description: "Você traz leveza e alegria por onde passa. Seu humor e espontaneidade tornam a vida mais divertida para todos."
+  },
+  "Sábio": {
+    emoji: "📚",
+    description: "Você busca entender o mundo em profundidade. Seu conhecimento e reflexão trazem clareza para situações complexas."
+  },
+  "Mago": {
+    emoji: "🔮",
+    description: "Você acredita em transformação e faz acontecer. Sua visão de possibilidades transforma sonhos em realidade."
+  },
+  "Governante": {
+    emoji: "👑",
+    description: "Você tem presença natural e capacidade de organizar o caos. Sua liderança traz ordem e direção."
+  }
 };
+
+// Insights combinados para pares de arquétipos
+const COMBINED_INSIGHTS: Record<string, string> = {
+  "Herói+Criador": "Sua combinação única de Herói e Criador faz de você alguém que não apenas sonha, mas transforma visão em ação. Você tem a coragem de criar coisas novas e a determinação de levá-las até o fim.",
+  "Herói+Explorador": "Como Herói e Explorador, você é movido por desafios e novas fronteiras. Sua coragem te leva a conquistar territórios inexplorados e superar obstáculos que outros evitariam.",
+  "Cuidador+Sábio": "Sua essência de Cuidador e Sábio te torna alguém que oferece não apenas apoio emocional, mas também orientação valiosa. As pessoas confiam em você para momentos importantes.",
+  "Explorador+Bobo da Corte": "Como Explorador e Bobo da Corte, você traz alegria e aventura por onde passa. Sua energia contagiante e espírito livre inspiram outros a viverem mais intensamente.",
+  "Sábio+Governante": "Sua combinação de Sábio e Governante te dá uma visão estratégica poderosa. Você consegue analisar situações com profundidade e tomar decisões que guiam outros ao sucesso.",
+  "default": "Sua combinação única de arquétipos revela uma personalidade rica e multifacetada. Você possui qualidades que se complementam e criam um equilíbrio especial em quem você é."
+};
+
+function getCombinedInsight(primary: string, secondary: string): string {
+  const key1 = `${primary}+${secondary}`;
+  const key2 = `${secondary}+${primary}`;
+  return COMBINED_INSIGHTS[key1] || COMBINED_INSIGHTS[key2] || COMBINED_INSIGHTS["default"];
+}
+
+// ==========================================
+// FUNÇÕES DE CÁLCULO
+// ==========================================
+function calculateProfiles(responses: Record<string, number>) {
+  const discScores = { D: 0, I: 0, S: 0, C: 0 };
+  const archetypeScores: Record<string, number> = {};
+
+  for (const [questionId, optionIndex] of Object.entries(responses)) {
+    const question = ARCHETYPE_QUESTIONS.find(q => q.id === parseInt(questionId));
+    if (!question) continue;
+
+    const option = question.options[optionIndex];
+    if (!option) continue;
+
+    // Pontuar DISC
+    discScores[option.disc as keyof typeof discScores]++;
+
+    // Pontuar Arquétipo (se existir)
+    if (option.archetype) {
+      archetypeScores[option.archetype] = (archetypeScores[option.archetype] || 0) + 1;
+    }
+  }
+
+  // Calcular perfil DISC
+  const maxDiscScore = Math.max(...Object.values(discScores));
+  const dominantProfiles = Object.entries(discScores)
+    .filter(([_, score]) => score >= maxDiscScore - 1) // Incluir perfis próximos
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([profile]) => profile);
+  const discProfile = dominantProfiles.join("/");
+
+  // Determinar 2 arquétipos principais
+  const sortedArchetypes = Object.entries(archetypeScores)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2);
+
+  const primaryArchetype = sortedArchetypes[0]?.[0] || "Herói";
+  const secondaryArchetype = sortedArchetypes[1]?.[0] || "Sábio";
+
+  return { 
+    discProfile, 
+    discScores, 
+    primaryArchetype,
+    secondaryArchetype,
+    archetypeScores
+  };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -38,7 +258,6 @@ serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  const path = url.pathname.split("/").pop();
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -48,14 +267,6 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-
-    // GET questions
-    if (req.method === "GET" && path === "questions") {
-      return new Response(
-        JSON.stringify({ questions: DISC_QUESTIONS }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     // GET form by token
     if (req.method === "GET") {
@@ -74,6 +285,7 @@ serve(async (req) => {
         .single();
 
       if (error || !form) {
+        console.log("Form not found for token:", token, error);
         return new Response(
           JSON.stringify({ error: "Formulário não encontrado" }),
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -84,6 +296,83 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ error: "Formulário expirado" }),
           { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Check if already answered
+      const { data: existingResponse } = await supabase
+        .from("disc_responses")
+        .select("id, primary_archetype, secondary_archetype, archetype_insight")
+        .eq("form_id", form.id)
+        .single();
+
+      if (existingResponse) {
+        // Se já foi respondido, retornar o resultado
+        const primary = existingResponse.primary_archetype || "Herói";
+        const secondary = existingResponse.secondary_archetype || "Sábio";
+        
+        return new Response(
+          JSON.stringify({ 
+            already_answered: true,
+            archetypes: {
+              primary: {
+                name: primary,
+                emoji: ARCHETYPE_DATA[primary]?.emoji || "✨",
+                description: ARCHETYPE_DATA[primary]?.description || ""
+              },
+              secondary: {
+                name: secondary,
+                emoji: ARCHETYPE_DATA[secondary]?.emoji || "🎭",
+                description: ARCHETYPE_DATA[secondary]?.description || ""
+              },
+              combined_insight: existingResponse.archetype_insight || getCombinedInsight(primary, secondary)
+            }
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Retornar perguntas para formulário novo
+      const questionsForFrontend = ARCHETYPE_QUESTIONS.map(q => ({
+        id: q.id,
+        text: q.text,
+        options: q.options.map(o => o.text)
+      }));
+
+      return new Response(
+        JSON.stringify({ 
+          form: { id: form.id, participant_name: form.participants?.full_name },
+          questions: questionsForFrontend
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // POST submit responses
+    if (req.method === "POST") {
+      const { token, responses, open_answers } = await req.json();
+
+      console.log("Received submission:", { token, responses: Object.keys(responses || {}).length, open_answers });
+
+      if (!token || !responses) {
+        return new Response(
+          JSON.stringify({ error: "Token e respostas são obrigatórios" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Verify form
+      const { data: form, error: formError } = await supabase
+        .from("disc_forms")
+        .select("*, participants(*)")
+        .eq("form_token", token)
+        .single();
+
+      if (formError || !form) {
+        console.log("Form not found:", formError);
+        return new Response(
+          JSON.stringify({ error: "Formulário não encontrado" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -101,64 +390,30 @@ serve(async (req) => {
         );
       }
 
-      return new Response(
-        JSON.stringify({ 
-          form: { id: form.id, participant_name: form.participants?.full_name },
-          questions: DISC_QUESTIONS 
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+      // Calculate DISC + Archetypes
+      const { discProfile, discScores, primaryArchetype, secondaryArchetype } = calculateProfiles(responses);
+      const combinedInsight = getCombinedInsight(primaryArchetype, secondaryArchetype);
 
-    // POST submit responses
-    if (req.method === "POST") {
-      const { form_id, token, responses } = await req.json();
-
-      // Verify form
-      const { data: form, error: formError } = await supabase
-        .from("disc_forms")
-        .select("*, participants(*)")
-        .eq(token ? "form_token" : "id", token || form_id)
-        .single();
-
-      if (formError || !form) {
-        return new Response(
-          JSON.stringify({ error: "Formulário não encontrado" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Calculate DISC profile
-      const scores = { D: 0, I: 0, S: 0, C: 0 };
-      for (const [questionId, answerIndex] of Object.entries(responses)) {
-        const profile = DISC_MAPPING[answerIndex as unknown as keyof typeof DISC_MAPPING];
-        if (profile) scores[profile as keyof typeof scores]++;
-      }
-
-      const maxScore = Math.max(...Object.values(scores));
-      const dominantProfiles = Object.entries(scores)
-        .filter(([_, score]) => score === maxScore)
-        .map(([profile]) => profile);
-      
-      const discProfile = dominantProfiles.join("/");
-
-      // Get participant data for AI analysis
       const participant = form.participants;
 
-      // Call AI for analysis
+      // Call AI for DISC analysis (oculto para closers)
       const aiPrompt = `Você é um especialista em perfil comportamental DISC e vendas.
 
-O participante "${participant.full_name}" respondeu um formulário DISC e seu perfil predominante é: ${discProfile}
+O participante "${participant.full_name}" respondeu um formulário e seu perfil DISC predominante é: ${discProfile}
 
 Pontuação DISC:
-- Dominância (D): ${scores.D}/15
-- Influência (I): ${scores.I}/15
-- Estabilidade (S): ${scores.S}/15
-- Conformidade (C): ${scores.C}/15
+- Dominância (D): ${discScores.D}/12
+- Influência (I): ${discScores.I}/12
+- Estabilidade (S): ${discScores.S}/12
+- Conformidade (C): ${discScores.C}/12
+
+Arquétipos identificados: ${primaryArchetype} (principal) e ${secondaryArchetype} (secundário)
 
 Dados adicionais do participante:
 - Faturamento: ${participant.faturamento ? `R$ ${participant.faturamento}` : "Não informado"}
 - Nicho: ${participant.nicho || "Não informado"}
+- Maior desafio: ${open_answers?.biggest_challenge || "Não informado"}
+- Mudança desejada: ${open_answers?.desired_change || "Não informado"}
 
 Por favor, forneça uma análise completa em formato JSON com os seguintes campos:
 1. "disc_description": Descrição comportamental do perfil (2-3 parágrafos)
@@ -197,7 +452,6 @@ Responda APENAS com o JSON, sem texto adicional.`;
           const aiData = await aiResponse.json();
           const content = aiData.choices?.[0]?.message?.content || "";
           
-          // Parse JSON from response
           const jsonMatch = content.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
@@ -214,18 +468,20 @@ Responda APENAS com o JSON, sem texto adicional.`;
         console.error("AI analysis error:", aiError);
       }
 
-      // Save response
-      const { data: savedResponse, error: saveError } = await supabase
+      // Save response with all data
+      const { error: saveError } = await supabase
         .from("disc_responses")
         .insert({
           form_id: form.id,
           responses,
           disc_profile: discProfile,
+          primary_archetype: primaryArchetype,
+          secondary_archetype: secondaryArchetype,
+          archetype_insight: combinedInsight,
+          open_answers: open_answers || null,
           ...aiAnalysis,
           analyzed_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+        });
 
       if (saveError) {
         console.error("Save error:", saveError);
@@ -235,12 +491,23 @@ Responda APENAS com o JSON, sem texto adicional.`;
         );
       }
 
+      // Retornar APENAS arquétipos para o participante (DISC fica oculto)
       return new Response(
         JSON.stringify({ 
           success: true,
-          disc_profile: discProfile,
-          scores,
-          analysis: aiAnalysis
+          archetypes: {
+            primary: {
+              name: primaryArchetype,
+              emoji: ARCHETYPE_DATA[primaryArchetype]?.emoji || "✨",
+              description: ARCHETYPE_DATA[primaryArchetype]?.description || ""
+            },
+            secondary: {
+              name: secondaryArchetype,
+              emoji: ARCHETYPE_DATA[secondaryArchetype]?.emoji || "🎭",
+              description: ARCHETYPE_DATA[secondaryArchetype]?.description || ""
+            },
+            combined_insight: combinedInsight
+          }
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -251,7 +518,7 @@ Responda APENAS com o JSON, sem texto adicional.`;
       { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("DISC error:", error);
+    console.error("DISC form error:", error);
     return new Response(
       JSON.stringify({ error: "Erro interno" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

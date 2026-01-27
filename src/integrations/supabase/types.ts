@@ -95,6 +95,7 @@ export type Database = {
       disc_responses: {
         Row: {
           analyzed_at: string | null
+          archetype_insight: string | null
           contorno_objecoes: string | null
           created_at: string | null
           disc_description: string | null
@@ -103,11 +104,15 @@ export type Database = {
           form_id: string
           id: string
           objecoes: string | null
+          open_answers: Json | null
+          primary_archetype: string | null
           responses: Json
           sales_insights: string | null
+          secondary_archetype: string | null
         }
         Insert: {
           analyzed_at?: string | null
+          archetype_insight?: string | null
           contorno_objecoes?: string | null
           created_at?: string | null
           disc_description?: string | null
@@ -116,11 +121,15 @@ export type Database = {
           form_id: string
           id?: string
           objecoes?: string | null
+          open_answers?: Json | null
+          primary_archetype?: string | null
           responses: Json
           sales_insights?: string | null
+          secondary_archetype?: string | null
         }
         Update: {
           analyzed_at?: string | null
+          archetype_insight?: string | null
           contorno_objecoes?: string | null
           created_at?: string | null
           disc_description?: string | null
@@ -129,8 +138,11 @@ export type Database = {
           form_id?: string
           id?: string
           objecoes?: string | null
+          open_answers?: Json | null
+          primary_archetype?: string | null
           responses?: Json
           sales_insights?: string | null
+          secondary_archetype?: string | null
         }
         Relationships: [
           {
