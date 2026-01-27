@@ -1,195 +1,58 @@
 
-# 🎯 Bethel Events - Sistema de Acompanhamento de Vendas
+# Plano de Correção: Edge Function `create-user`
 
-Sistema completo para gestão de vendas e participação em eventos, com acompanhamento de closers, análise de perfil DISC via IA, e dashboards em tempo real.
+## Problema Identificado
 
----
+A Edge Function `create-user` está retornando erro 500 porque está usando uma variável de ambiente que não existe:
 
-## 📱 Configuração Base
-- **PWA (Progressive Web App)** - Instalável no celular como aplicativo
-- **Design Moderno/Minimalista** - Interface limpa com bastante espaço em branco e cores suaves
-- **Responsivo** - Funciona perfeitamente em desktop e mobile
+- **Código atual usa**: `SUPABASE_PUBLISHABLE_KEY` (linha 27)
+- **Nome correto**: `SUPABASE_ANON_KEY`
 
----
+O Lovable Cloud configura automaticamente os seguintes secrets:
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`  
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_DB_URL`
 
-## 🔐 Autenticação e Permissões
+Quando a funcao tenta acessar `SUPABASE_PUBLISHABLE_KEY`, ela recebe `undefined` e falha ao criar o cliente Supabase.
 
-### Sistema de Login
-- Tela de login elegante com a marca Bethel
-- Recuperação de senha via email
+## Solucao
 
-### Roles e Permissões
-- **Admin** - Acesso completo a todos os módulos
-- **Closer** - Acesso restrito aos seus participantes e métricas pessoais
+### Etapa 1: Corrigir a variavel de ambiente
 
----
+Editar `supabase/functions/create-user/index.ts`:
 
-## 👤 Painel Admin (CRUD de Usuários)
+```typescript
+// Linha 27 - ANTES:
+const supabaseAnonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
 
-### Funcionalidades
-- Criar novos usuários (Admins e Closers)
-- Editar dados: nome, email, senha, role
-- Upload de foto do usuário
-- Ativar/desativar usuários
-- Excluir usuários
+// DEPOIS:
+const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+```
 
----
+### Etapa 2: Adicionar logging para debug
 
-## 👥 Módulo Participantes
+Adicionar mais logs na funcao para facilitar diagnostico de problemas futuros:
 
-### Recebimento via Webhook
-- Endpoint seguro para receber dados do seu sistema próprio
-- Validação e armazenamento automático
-- Suporte a dados de credenciamento (Dia 1, 2, 3)
+```typescript
+console.log("Starting create-user function");
+console.log("User requesting:", currentUser?.email);
+```
 
-### Card do Participante
-- Foto, Nome, Faturamento, Nicho
-- Indicador de cor (Rosa, Preto, Azul claro, Dourado, Laranja)
-- Link clicável para Instagram
+### Arquivos a Modificar
 
-### Painel do Participante (ao clicar)
-**Dados automáticos (webhook):**
-- Todas as informações importadas
-- Status de credenciamento por dia
-
-**Dados manuais:**
-- De qual funil veio?
-- Qual Closer vendeu/convidou?
-- Qual Mentorado convidou?
-- Quem é o acompanhante?
-- É uma oportunidade? (Sim/Não)
-- Quantas vezes foi chamado? (0-4)
-- Seleção de cor
-
-**Ações especiais:**
-- Botão "Atribuir Closer" (lista de closers disponíveis)
-- Botão "Venda Realizada" (popup com produto, valor, entrada, negociação)
-- Botão "Gerar Formulário" (formulário único para análise DISC)
-
-### Filtros (Admin)
-- Funil de origem
-- Vendedor que convidou
-- É oportunidade?
-- Teve venda?
-
-### Filtros (Closer)
-- Mesmos filtros, exceto "qual vendedor"
+| Arquivo | Alteracao |
+|---------|-----------|
+| `supabase/functions/create-user/index.ts` | Corrigir nome da variavel de `SUPABASE_PUBLISHABLE_KEY` para `SUPABASE_ANON_KEY` |
 
 ---
 
-## 📋 Formulário DISC + IA
+## Detalhes Tecnicos
 
-### Perguntas do Formulário
-Modelo sugerido com ~15 perguntas situacionais para identificar perfil DISC (Dominância, Influência, Estabilidade, Conformidade)
+A funcao usa dois clientes Supabase:
+1. **userClient**: Com a anon key + token do usuario (para verificar se e admin)
+2. **adminClient**: Com a service role key (para criar usuarios via API admin)
 
-### Análise por IA (OpenAI GPT)
-- Identificação do perfil predominante
-- Descrição do perfil comportamental
-- Insights personalizados para venda
-- Principais objeções previstas
-- Técnicas de contorno de objeções
-- Exemplos práticos para fechamento
+O problema ocorre no userClient porque `SUPABASE_PUBLISHABLE_KEY` retorna `undefined`, causando falha na inicializacao do cliente.
 
----
-
-## 🎯 Módulo Closers
-
-### Card do Closer
-- Foto e Nome
-- Oportunidades comparecidas
-- Quantidade de vendas
-- Taxa de conversão
-- Valor total de vendas
-- Valor de entradas
-
-### Painel do Closer (ao clicar)
-- Participantes atribuídos
-- Filtros por dia de comparecimento
-- Oportunidades totais por dia
-- **Exclusivo Admin:** Qualificação de oportunidades (Super/Médio/Baixo)
-
----
-
-## 📊 Dashboard Admin
-
-### Bloco 1 - Participantes
-- Total de participantes
-- Credenciados Dia 1, 2, 3 (quantidade + % do total)
-
-### Bloco 2 - Oportunidades
-- Total de oportunidades
-- Credenciadas Dia 1, 2, 3 (quantidade + % do total)
-
-### Blocos de Qualificação
-- 🟢 **Super qualificadas** - Vendas, conversão, valores
-- 🔵 **Médio qualificadas** - Vendas, conversão, valores
-- 🔴 **Baixo qualificadas** - Vendas, conversão, valores
-
-### TOP 3 Closers
-- Pódio visual com fotos
-- Quantidade e valor de vendas
-- Valor de entradas
-
----
-
-## 📊 Dashboard Closer
-
-### Métricas Pessoais
-- Participantes que compareceram
-- Oportunidades que compareceram
-- Quantidade de vendas
-- Taxa de conversão
-- Valor de vendas
-- Valor de entrada
-
-### TOP 3 Closers
-- Mesmo pódio visual do admin
-
----
-
-## 🗄️ Backend (Lovable Cloud + Supabase)
-
-### Tabelas
-- users (autenticação)
-- user_roles (admin/closer)
-- profiles (dados do usuário)
-- participants (participantes)
-- closers_assignments (atribuições)
-- sales (vendas realizadas)
-- disc_forms (formulários gerados)
-- disc_responses (respostas + análise IA)
-- products (produtos vendidos)
-
-### Edge Functions
-- Webhook receptor de participantes
-- Webhook receptor de credenciamento
-- Análise DISC via OpenAI GPT
-- Geração de insights de vendas
-
-### Segurança
-- RLS (Row Level Security) para separar dados por role
-- Closers só veem seus participantes
-- Admins veem tudo
-
----
-
-## 🔄 Fases de Implementação
-
-### Fase 1 - Base
-Autenticação, roles, painel admin de usuários
-
-### Fase 2 - Participantes
-Webhook, listagem, cards, painel detalhado
-
-### Fase 3 - Vendas e Closers
-Sistema de vendas, atribuições, módulo closers
-
-### Fase 4 - IA e Formulários
-Formulário DISC, integração OpenAI, insights
-
-### Fase 5 - Dashboards
-Dashboard admin, dashboard closer, TOP 3
-
-### Fase 6 - PWA
-Configuração final para instalação mobile
-
+Apos a correcao, a funcao funcionara corretamente pois `SUPABASE_ANON_KEY` esta configurada automaticamente pelo Lovable Cloud.
