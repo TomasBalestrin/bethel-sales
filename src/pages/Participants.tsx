@@ -27,7 +27,7 @@ interface Participant {
   email: string | null;
   phone: string | null;
   photo_url: string | null;
-  faturamento: number | null;
+  faturamento: string | null;
   nicho: string | null;
   instagram: string | null;
   credenciou_dia1: boolean;
@@ -158,9 +158,16 @@ export default function Participants() {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   };
 
-  const formatCurrency = (value: number | null) => {
+  const formatFaturamento = (value: string | null) => {
     if (!value) return "-";
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+    // If it's already a formatted string (e.g., "Até R$ 5.000,00"), return it directly
+    if (typeof value === "string" && value.includes("R$")) return value;
+    // Try to parse as number for legacy data
+    const num = parseFloat(value);
+    if (!isNaN(num)) {
+      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(num);
+    }
+    return value;
   };
 
   const clearFilters = () => {
@@ -334,7 +341,7 @@ export default function Participants() {
                       <p className="text-sm text-muted-foreground truncate">{participant.nicho}</p>
                     )}
                     <p className="text-sm font-medium text-primary mt-1">
-                      {formatCurrency(participant.faturamento)}
+                      {formatFaturamento(participant.faturamento)}
                     </p>
                   </div>
                 </div>
