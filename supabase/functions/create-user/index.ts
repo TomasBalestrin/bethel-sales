@@ -13,6 +13,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Starting create-user function");
+    
     // Get auth token from request
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -24,7 +26,7 @@ serve(async (req) => {
 
     // Create client with user's token to verify they're admin
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
