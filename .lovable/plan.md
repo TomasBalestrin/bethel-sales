@@ -1,152 +1,225 @@
 
 
-# Plano: Atribuir Cores Automaticamente por Faturamento
+# Plano: Adicao Manual de Participantes pelo Admin
 
 ## Resumo
 
-Quando um participante for importado via webhook, sua cor sera automaticamente definida com base na faixa de faturamento informada.
+Adicionar um botao "Novo Participante" na tela de participantes que abre um dialogo/formulario para o admin cadastrar participantes manualmente, sem depender do webhook.
 
-## Mapeamento Cor x Faturamento
+## Interface Proposta
 
-| Faturamento | Cor |
-|-------------|-----|
-| Ate R$ 5.000,00 | Rosa |
-| R$ 5.000,00 ate 10.000,00 | Preto |
-| R$ 10.000,00 ate 20.000,00 | Azul Claro |
-| R$ 20.000,00 ate 50.000,00 | Verde (novo) |
-| R$ 50.000,00 ate 100.000,00 | Dourado |
-| R$ 100.000,00 ate 250.000,00 | Laranja |
-| R$ 250.000,00 ate 500.000,00 | Laranja |
-| Acima de R$ 500.000,00 | Laranja |
-
-## Alteracoes Necessarias
-
-### 1. Banco de Dados - Adicionar cor "verde"
-
-O enum `participant_color` atual tem: `rosa`, `preto`, `azul_claro`, `dourado`, `laranja`
-
-Precisa adicionar: `verde`
-
-```sql
-ALTER TYPE participant_color ADD VALUE 'verde';
+```text
++--------------------------------------------------+
+| Participantes                   [+ Novo] [Export]|
+| 252 de 252 participantes                         |
++--------------------------------------------------+
+| [Buscar...]                                      |
+| [Filtros: Funil | Closer | Oportunidade | Venda] |
++--------------------------------------------------+
+| [Cards de participantes...]                      |
++--------------------------------------------------+
 ```
 
-### 2. Webhook - Funcao para determinar cor
+## Campos do Formulario
 
-Adicionar funcao no `webhook-participants/index.ts`:
+O formulario de criacao manual tera dois grupos de campos:
 
-```typescript
-function getColorFromFaturamento(faturamento: string | null): string | null {
-  if (!faturamento) return null;
-  
-  const lower = faturamento.toLowerCase();
-  
-  if (lower.includes("ate r$ 5.000") || lower.includes("até r$ 5.000")) {
-    return "rosa";
-  }
-  if (lower.includes("5.000,00 ate 10.000") || lower.includes("5.000,00 até 10.000")) {
-    return "preto";
-  }
-  if (lower.includes("10.000,00 ate 20.000") || lower.includes("10.000,00 até 20.000")) {
-    return "azul_claro";
-  }
-  if (lower.includes("20.000,00 ate 50.000") || lower.includes("20.000,00 até 50.000")) {
-    return "verde";
-  }
-  if (lower.includes("50.000,00 ate 100.000") || lower.includes("50.000,00 até 100.000")) {
-    return "dourado";
-  }
-  if (lower.includes("100.000,00 ate") || lower.includes("100.000,00 até") ||
-      lower.includes("250.000,00 ate") || lower.includes("250.000,00 até") ||
-      lower.includes("acima de")) {
-    return "laranja";
-  }
-  
-  return null;
-}
-```
+### Campos Obrigatorios
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| Nome Completo | text | Unico campo obrigatorio no banco |
 
-### 3. Webhook - Aplicar cor na insercao
+### Campos Opcionais (Dados Basicos)
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| Email | text | Email do participante |
+| Telefone | text | Telefone com DDD |
+| Instagram | text | Handle do Instagram |
+| Nicho | text | Area de atuacao |
+| Faturamento | select | Faixa de faturamento (mesmo do webhook) |
+| Nome para Cracha | text | Nome a ser usado no cracha |
+| CPF/CNPJ | text | Documento |
+| Evento | text | Nome do evento |
 
-Modificar a logica de insercao para incluir a cor:
+### Campos Opcionais (Informacoes Adicionais)
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| Tem Socio | switch | Se tem socio ou nao |
+| Lucro Liquido | text | Faixa de lucro |
+| Objetivo no Evento | text | O que espera do evento |
+| Maior Dificuldade | text | Principal desafio |
 
-```typescript
-participantData = {
-  ...extracted,
-  cor: getColorFromFaturamento(extracted.faturamento),
-  webhook_data: participant,
-};
-```
+## Logica de Cores Automatica
 
-### 4. Frontend - Adicionar cor verde
-
-Atualizar os arquivos que definem as cores:
-
-**tailwind.config.ts** - Adicionar cor verde:
-```typescript
-participant: {
-  rosa: "#FF69B4",
-  preto: "#1a1a1a", 
-  "azul-claro": "#87CEEB",
-  dourado: "#FFD700",
-  laranja: "#FF8C00",
-  verde: "#22C55E", // nova cor
-}
-```
-
-**src/pages/Participants.tsx** - Adicionar no colorMap:
-```typescript
-const colorMap: Record<string, string> = {
-  rosa: "bg-participant-rosa",
-  preto: "bg-participant-preto",
-  azul_claro: "bg-participant-azul-claro",
-  dourado: "bg-participant-dourado",
-  laranja: "bg-participant-laranja",
-  verde: "bg-participant-verde", // nova cor
-};
-```
-
-**src/pages/ParticipantDetail.tsx** - Adicionar na lista de cores:
-```typescript
-const colors = [
-  { value: "rosa", label: "Rosa", class: "bg-participant-rosa" },
-  { value: "preto", label: "Preto", class: "bg-participant-preto" },
-  { value: "azul_claro", label: "Azul Claro", class: "bg-participant-azul-claro" },
-  { value: "verde", label: "Verde", class: "bg-participant-verde" }, // nova cor
-  { value: "dourado", label: "Dourado", class: "bg-participant-dourado" },
-  { value: "laranja", label: "Laranja", class: "bg-participant-laranja" },
-];
-```
+Ao selecionar o faturamento, a cor sera automaticamente atribuida conforme regras ja implementadas:
+- Ate R$ 5.000 → Rosa
+- R$ 5.000 a 10.000 → Preto
+- R$ 10.000 a 20.000 → Azul Claro
+- R$ 20.000 a 50.000 → Verde
+- R$ 50.000 a 100.000 → Dourado
+- Acima de R$ 100.000 → Laranja
 
 ## Arquivos a Modificar
 
 | Arquivo | Alteracao |
 |---------|-----------|
-| Banco de dados | Adicionar valor `verde` ao enum `participant_color` |
-| `supabase/functions/webhook-participants/index.ts` | Adicionar funcao `getColorFromFaturamento` e aplicar na importacao |
-| `tailwind.config.ts` | Adicionar cor `participant-verde` |
-| `src/pages/Participants.tsx` | Adicionar `verde` no `colorMap` |
-| `src/pages/ParticipantDetail.tsx` | Adicionar `verde` na lista de cores |
+| `src/pages/Participants.tsx` | Adicionar botao "Novo Participante", dialog de criacao e logica de submit |
+
+## Implementacao Tecnica
+
+### 1. Estado do Dialog
+
+```typescript
+const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+const [isCreating, setIsCreating] = useState(false);
+
+// Form state
+const [newName, setNewName] = useState("");
+const [newEmail, setNewEmail] = useState("");
+const [newPhone, setNewPhone] = useState("");
+const [newInstagram, setNewInstagram] = useState("");
+const [newNicho, setNewNicho] = useState("");
+const [newFaturamento, setNewFaturamento] = useState("");
+const [newNomeCracha, setNewNomeCracha] = useState("");
+const [newCpfCnpj, setNewCpfCnpj] = useState("");
+const [newEventName, setNewEventName] = useState("");
+const [newTemSocio, setNewTemSocio] = useState(false);
+const [newLucroLiquido, setNewLucroLiquido] = useState("");
+const [newObjetivoEvento, setNewObjetivoEvento] = useState("");
+const [newMaiorDificuldade, setNewMaiorDificuldade] = useState("");
+```
+
+### 2. Opcoes de Faturamento
+
+```typescript
+const faturamentoOptions = [
+  { value: "Até R$ 5.000,00", label: "Até R$ 5.000,00", cor: "rosa" },
+  { value: "R$ 5.000,00 até 10.000,00", label: "R$ 5.000 a R$ 10.000", cor: "preto" },
+  { value: "R$ 10.000,00 até 20.000,00", label: "R$ 10.000 a R$ 20.000", cor: "azul_claro" },
+  { value: "R$ 20.000,00 até 50.000,00", label: "R$ 20.000 a R$ 50.000", cor: "verde" },
+  { value: "R$ 50.000,00 até 100.000,00", label: "R$ 50.000 a R$ 100.000", cor: "dourado" },
+  { value: "R$ 100.000,00 até 250.000,00", label: "R$ 100.000 a R$ 250.000", cor: "laranja" },
+  { value: "R$ 250.000,00 até 500.000,00", label: "R$ 250.000 a R$ 500.000", cor: "laranja" },
+  { value: "Acima de R$ 500.000,00", label: "Acima de R$ 500.000", cor: "laranja" },
+];
+```
+
+### 3. Funcao de Criacao
+
+```typescript
+const handleCreateParticipant = async () => {
+  if (!newName.trim()) {
+    toast({ variant: "destructive", title: "Nome obrigatorio" });
+    return;
+  }
+
+  setIsCreating(true);
+
+  const selectedFaturamento = faturamentoOptions.find(f => f.value === newFaturamento);
+
+  const { error } = await supabase.from("participants").insert({
+    full_name: newName.trim(),
+    email: newEmail || null,
+    phone: newPhone || null,
+    instagram: newInstagram || null,
+    nicho: newNicho || null,
+    faturamento: newFaturamento || null,
+    cor: selectedFaturamento?.cor || null,
+    nome_cracha: newNomeCracha || null,
+    cpf_cnpj: newCpfCnpj || null,
+    event_name: newEventName || null,
+    tem_socio: newTemSocio,
+    lucro_liquido: newLucroLiquido || null,
+    objetivo_evento: newObjetivoEvento || null,
+    maior_dificuldade: newMaiorDificuldade || null,
+  });
+
+  setIsCreating(false);
+
+  if (error) {
+    toast({ variant: "destructive", title: "Erro", description: error.message });
+    return;
+  }
+
+  toast({ title: "Participante criado!", description: "O participante foi adicionado com sucesso." });
+  resetForm();
+  setIsCreateDialogOpen(false);
+  fetchParticipants();
+};
+```
+
+### 4. Botao no Header
+
+```tsx
+<div className="flex items-center gap-2">
+  {isAdmin && (
+    <Button onClick={() => setIsCreateDialogOpen(true)}>
+      <Plus className="h-4 w-4 mr-2" />
+      Novo Participante
+    </Button>
+  )}
+  <Button variant="outline" onClick={handleExport}>
+    <Download className="h-4 w-4 mr-2" />
+    Exportar CSV
+  </Button>
+</div>
+```
+
+### 5. Layout do Dialog
+
+O dialog tera duas colunas em telas maiores para organizar os campos de forma mais compacta:
+
+```text
++------------------------------------------------+
+| Novo Participante                              |
+| Preencha os dados do novo participante.        |
++------------------------------------------------+
+| Nome Completo *          | Email               |
+| [__________________]     | [_______________]   |
+|                          |                     |
+| Telefone                 | Instagram           |
+| [__________________]     | [_______________]   |
+|                          |                     |
+| Nicho                    | Faturamento         |
+| [__________________]     | [Select... v]       |
+|                          |                     |
+| Nome para Cracha         | CPF/CNPJ            |
+| [__________________]     | [_______________]   |
+|                          |                     |
+| Evento                   | Tem Socio           |
+| [__________________]     | [Switch]            |
+|                          |                     |
+| Lucro Liquido            | Objetivo no Evento  |
+| [__________________]     | [_______________]   |
+|                          |                     |
+| Maior Dificuldade                              |
+| [__________________________________________]   |
++------------------------------------------------+
+|                     [Cancelar] [Criar]         |
++------------------------------------------------+
+```
+
+## Validacoes
+
+1. **Nome Completo**: Campo obrigatorio, minimo 2 caracteres
+2. **Email**: Validacao de formato se preenchido
+3. **Telefone**: Apenas numeros se preenchido
+4. **Instagram**: Remove @ automaticamente se incluido
+
+## Fluxo do Usuario
+
+1. Admin clica em "Novo Participante"
+2. Dialog abre com formulario
+3. Preenche os dados (apenas nome e obrigatorio)
+4. Ao selecionar faturamento, cor e determinada automaticamente
+5. Clica em "Criar"
+6. Participante e inserido no banco
+7. Lista e atualizada mostrando o novo participante
 
 ## Comportamento
 
-1. **Novos participantes**: Cor atribuida automaticamente na importacao
-2. **Participantes existentes**: Cor permanece como esta (pode ser alterada manualmente ou via script de atualizacao)
-3. **Edicao manual**: O usuario ainda pode alterar a cor manualmente na tela de detalhes
-
-## Opcional - Atualizar Participantes Existentes
-
-Apos a implementacao, executar SQL para atualizar os participantes que ja foram importados:
-
-```sql
-UPDATE participants 
-SET cor = 'rosa' 
-WHERE faturamento ILIKE '%Até R$ 5.000%' AND cor IS NULL;
-
-UPDATE participants 
-SET cor = 'preto' 
-WHERE faturamento ILIKE '%5.000,00 até 10.000%' AND cor IS NULL;
-
--- ... continuar para outras faixas
-```
+- Botao "Novo Participante" visivel apenas para admins (`isAdmin`)
+- Participante criado manualmente nao tera `webhook_data` (sera null)
+- Campo `imported_at` sera null para diferenciar de importados
+- Cor atribuida automaticamente baseada no faturamento selecionado
 
