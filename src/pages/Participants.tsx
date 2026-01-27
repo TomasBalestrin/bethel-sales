@@ -16,8 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Users, Filter, Instagram, Loader2, X, Download } from "lucide-react";
+import { Search, Users, Filter, Instagram, Loader2, X, Download, Plus } from "lucide-react";
 import { BulkAssignBar } from "@/components/participants/BulkAssignBar";
+import { CreateParticipantDialog } from "@/components/participants/CreateParticipantDialog";
 import { exportToCSV, participantExportColumns } from "@/lib/export";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +82,7 @@ export default function Participants() {
   const [closers, setClosers] = useState<Array<{ id: string; full_name: string }>>([]);
   const [funilOptions, setFunilOptions] = useState<string[]>([]);
   const [salesMap, setSalesMap] = useState<Record<string, boolean>>({});
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const fetchParticipants = async () => {
     setIsLoading(true);
@@ -216,10 +218,18 @@ export default function Participants() {
             {filteredParticipants.length} de {participants.length} participantes
           </p>
         </div>
-        <Button variant="outline" onClick={handleExport}>
-          <Download className="h-4 w-4 mr-2" />
-          Exportar CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Participante
+            </Button>
+          )}
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-2" />
+            Exportar CSV
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -400,6 +410,13 @@ export default function Participants() {
           onComplete={handleBulkComplete}
         />
       )}
+
+      {/* Create Participant Dialog */}
+      <CreateParticipantDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSuccess={fetchParticipants}
+      />
     </div>
   );
 }
