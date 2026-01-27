@@ -438,7 +438,13 @@ export type Database = {
     Enums: {
       app_role: "admin" | "closer"
       opportunity_qualification: "super" | "medio" | "baixo"
-      participant_color: "rosa" | "preto" | "azul_claro" | "dourado" | "laranja"
+      participant_color:
+        | "rosa"
+        | "preto"
+        | "azul_claro"
+        | "dourado"
+        | "laranja"
+        | "verde"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -568,7 +574,14 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "closer"],
       opportunity_qualification: ["super", "medio", "baixo"],
-      participant_color: ["rosa", "preto", "azul_claro", "dourado", "laranja"],
+      participant_color: [
+        "rosa",
+        "preto",
+        "azul_claro",
+        "dourado",
+        "laranja",
+        "verde",
+      ],
     },
   },
 } as const

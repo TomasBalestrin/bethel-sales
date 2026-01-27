@@ -66,6 +66,7 @@ const colors = [
   { value: "rosa", label: "Rosa", class: "bg-participant-rosa" },
   { value: "preto", label: "Preto", class: "bg-participant-preto" },
   { value: "azul_claro", label: "Azul Claro", class: "bg-participant-azul-claro" },
+  { value: "verde", label: "Verde", class: "bg-participant-verde" },
   { value: "dourado", label: "Dourado", class: "bg-participant-dourado" },
   { value: "laranja", label: "Laranja", class: "bg-participant-laranja" },
 ];
