@@ -57,6 +57,16 @@ interface Participant {
   cor: string | null;
   qualificacao: string | null;
   webhook_data?: Record<string, unknown>;
+  // Novos campos importados
+  cpf_cnpj: string | null;
+  nome_cracha: string | null;
+  tem_socio: boolean | null;
+  lucro_liquido: string | null;
+  objetivo_evento: string | null;
+  maior_dificuldade: string | null;
+  event_name: string | null;
+  registration_status: string | null;
+  aceitou_termo_imagem: boolean | null;
 }
 
 interface ParticipantPanelProps {
@@ -354,42 +364,117 @@ export function ParticipantPanel({ participant, onClose, onUpdate, closers, isAd
               <TabsTrigger value="acoes">Ações</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="dados" className="space-y-4 mt-4">
-              {/* Contact info */}
-              <div className="flex flex-wrap gap-3">
-                {participant.email && (
-                  <a href={`mailto:${participant.email}`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
-                    <Mail className="h-4 w-4" /> {participant.email}
-                  </a>
-                )}
-                {participant.phone && (
-                  <a href={`tel:${participant.phone}`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
-                    <Phone className="h-4 w-4" /> {participant.phone}
-                  </a>
-                )}
-                {participant.instagram && (
-                  <a
-                    href={`https://instagram.com/${participant.instagram.replace("@", "")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary"
-                  >
-                    <Instagram className="h-4 w-4" /> {participant.instagram}
-                  </a>
-                )}
-              </div>
+            <TabsContent value="dados" className="space-y-6 mt-4">
+              {/* SEÇÃO 1: Informações de Contato */}
+              <Card>
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Informações de Contato</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 pt-0">
+                  <div className="flex flex-wrap gap-4">
+                    {participant.email && (
+                      <a href={`mailto:${participant.email}`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
+                        <Mail className="h-4 w-4" /> {participant.email}
+                      </a>
+                    )}
+                    {participant.phone && (
+                      <a href={`tel:${participant.phone}`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
+                        <Phone className="h-4 w-4" /> {participant.phone}
+                      </a>
+                    )}
+                    {participant.instagram && (
+                      <a
+                        href={`https://instagram.com/${participant.instagram.replace("@", "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary"
+                      >
+                        <Instagram className="h-4 w-4" /> {participant.instagram}
+                      </a>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-muted-foreground">Faturamento</p>
-                  <p className="font-semibold">{formatFaturamento(participant.faturamento)}</p>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-muted-foreground">Nicho</p>
-                  <p className="font-semibold">{participant.nicho || "-"}</p>
-                </div>
-              </div>
+              {/* SEÇÃO 2: Dados do Formulário (Importados - Somente Leitura) */}
+              <Card className="border-primary/20">
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Dados do Formulário</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 pt-0 space-y-4">
+                  {/* Grid de informações básicas */}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">CPF/CNPJ</p>
+                      <p className="font-medium">{participant.cpf_cnpj || "-"}</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Nome p/ Crachá</p>
+                      <p className="font-medium">{participant.nome_cracha || "-"}</p>
+                    </div>
+                  </div>
 
+                  {participant.event_name && (
+                    <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                      <p className="text-xs text-muted-foreground">Evento</p>
+                      <p className="font-medium">{participant.event_name}</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Status</p>
+                      <Badge variant="outline" className="mt-1">
+                        {participant.registration_status || "N/A"}
+                      </Badge>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Tem Sócio?</p>
+                      <Badge variant={participant.tem_socio ? "default" : "secondary"} className="mt-1">
+                        {participant.tem_socio ? "Sim" : "Não"}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Faturamento</p>
+                      <p className="font-medium">{formatFaturamento(participant.faturamento)}</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Lucro Líquido</p>
+                      <p className="font-medium">{participant.lucro_liquido || "-"}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                    <p className="text-xs text-muted-foreground">Nicho</p>
+                    <p className="font-medium">{participant.nicho || "-"}</p>
+                  </div>
+
+                  {participant.objetivo_evento && (
+                    <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                      <p className="text-xs text-muted-foreground mb-1">Objetivo no Evento</p>
+                      <p className="text-sm whitespace-pre-wrap">{participant.objetivo_evento}</p>
+                    </div>
+                  )}
+
+                  {participant.maior_dificuldade && (
+                    <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                      <p className="text-xs text-muted-foreground mb-1">Maior Dificuldade</p>
+                      <p className="text-sm whitespace-pre-wrap">{participant.maior_dificuldade}</p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <Badge variant={participant.aceitou_termo_imagem ? "default" : "secondary"}>
+                      {participant.aceitou_termo_imagem ? "✓ Aceitou termo de imagem" : "Não aceitou termo de imagem"}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Closer atribuído */}
               {assignedCloserName && (
                 <div className="bg-primary/10 rounded-lg p-3">
                   <p className="text-sm text-muted-foreground">Closer atribuído</p>
@@ -397,99 +482,102 @@ export function ParticipantPanel({ participant, onClose, onUpdate, closers, isAd
                 </div>
               )}
 
-              {/* Manual fields */}
-              <div className="space-y-4 pt-4 border-t">
-                <h4 className="font-medium">Informações manuais</h4>
-
-                <div className="space-y-2">
-                  <Label>Funil de origem</Label>
-                  <Input value={funilOrigem} onChange={(e) => setFunilOrigem(e.target.value)} placeholder="Ex: Lançamento, Orgânico..." />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Closer que vendeu/convidou</Label>
-                  <Select value={closerVendeuId || "__none__"} onValueChange={(v) => setCloserVendeuId(v === "__none__" ? "" : v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Nenhum</SelectItem>
-                      {closers.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Mentorado que convidou</Label>
-                  <Input value={mentoradoConvidou} onChange={(e) => setMentoradoConvidou(e.target.value)} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Acompanhante</Label>
-                  <Input value={acompanhante} onChange={(e) => setAcompanhante(e.target.value)} />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label>É uma oportunidade?</Label>
-                  <Switch checked={isOportunidade} onCheckedChange={setIsOportunidade} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Quantas vezes foi chamado?</Label>
-                  <Select value={String(vezesChamado)} onValueChange={(v) => setVezesChamado(Number(v))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[0, 1, 2, 3, 4].map(n => (
-                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Cor</Label>
-                  <div className="flex gap-2">
-                    {colors.map(c => (
-                      <button
-                        key={c.value}
-                        onClick={() => setCor(cor === c.value ? "" : c.value)}
-                        className={cn(
-                          "w-8 h-8 rounded-full transition-all",
-                          c.class,
-                          cor === c.value ? "ring-2 ring-offset-2 ring-primary" : "opacity-60 hover:opacity-100"
-                        )}
-                        title={c.label}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {isAdmin && (
+              {/* SEÇÃO 3: Informações Manuais (Editáveis) */}
+              <Card>
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Informações Manuais</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 pt-0 space-y-4">
                   <div className="space-y-2">
-                    <Label>Qualificação da oportunidade</Label>
-                    <Select value={qualificacao || "__none__"} onValueChange={(v) => setQualificacao(v === "__none__" ? "" : v)}>
+                    <Label>Funil de origem</Label>
+                    <Input value={funilOrigem} onChange={(e) => setFunilOrigem(e.target.value)} placeholder="Ex: Lançamento, Orgânico..." />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Closer que vendeu/convidou</Label>
+                    <Select value={closerVendeuId || "__none__"} onValueChange={(v) => setCloserVendeuId(v === "__none__" ? "" : v)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none__">Não definida</SelectItem>
-                        {qualifications.map(q => (
-                          <SelectItem key={q.value} value={q.value}>{q.label}</SelectItem>
+                        <SelectItem value="__none__">Nenhum</SelectItem>
+                        {closers.map(c => (
+                          <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                )}
 
-                <Button onClick={handleSave} disabled={isLoading} className="w-full">
-                  {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                  Salvar alterações
-                </Button>
-              </div>
+                  <div className="space-y-2">
+                    <Label>Mentorado que convidou</Label>
+                    <Input value={mentoradoConvidou} onChange={(e) => setMentoradoConvidou(e.target.value)} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Acompanhante</Label>
+                    <Input value={acompanhante} onChange={(e) => setAcompanhante(e.target.value)} />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label>É uma oportunidade?</Label>
+                    <Switch checked={isOportunidade} onCheckedChange={setIsOportunidade} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Quantas vezes foi chamado?</Label>
+                    <Select value={String(vezesChamado)} onValueChange={(v) => setVezesChamado(Number(v))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0, 1, 2, 3, 4].map(n => (
+                          <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Cor</Label>
+                    <div className="flex gap-2">
+                      {colors.map(c => (
+                        <button
+                          key={c.value}
+                          onClick={() => setCor(cor === c.value ? "" : c.value)}
+                          className={cn(
+                            "w-8 h-8 rounded-full transition-all",
+                            c.class,
+                            cor === c.value ? "ring-2 ring-offset-2 ring-primary" : "opacity-60 hover:opacity-100"
+                          )}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {isAdmin && (
+                    <div className="space-y-2">
+                      <Label>Qualificação da oportunidade</Label>
+                      <Select value={qualificacao || "__none__"} onValueChange={(v) => setQualificacao(v === "__none__" ? "" : v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">Não definida</SelectItem>
+                          {qualifications.map(q => (
+                            <SelectItem key={q.value} value={q.value}>{q.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <Button onClick={handleSave} disabled={isLoading} className="w-full">
+                    {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Salvar alterações
+                  </Button>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="vendas" className="mt-4">
