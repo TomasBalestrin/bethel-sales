@@ -408,12 +408,12 @@ export function ParticipantPanel({ participant, onClose, onUpdate, closers, isAd
 
                 <div className="space-y-2">
                   <Label>Closer que vendeu/convidou</Label>
-                  <Select value={closerVendeuId} onValueChange={setCloserVendeuId}>
+                  <Select value={closerVendeuId || "__none__"} onValueChange={(v) => setCloserVendeuId(v === "__none__" ? "" : v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhum</SelectItem>
+                      <SelectItem value="__none__">Nenhum</SelectItem>
                       {closers.map(c => (
                         <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
                       ))}
@@ -471,12 +471,12 @@ export function ParticipantPanel({ participant, onClose, onUpdate, closers, isAd
                 {isAdmin && (
                   <div className="space-y-2">
                     <Label>Qualificação da oportunidade</Label>
-                    <Select value={qualificacao} onValueChange={setQualificacao}>
+                    <Select value={qualificacao || "__none__"} onValueChange={(v) => setQualificacao(v === "__none__" ? "" : v)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Não definida</SelectItem>
+                        <SelectItem value="__none__">Não definida</SelectItem>
                         {qualifications.map(q => (
                           <SelectItem key={q.value} value={q.value}>{q.label}</SelectItem>
                         ))}
