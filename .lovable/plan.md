@@ -1,171 +1,57 @@
 
-# Plano: Reestruturar Painel do Participante com Dados Completos
+# Plano: Corrigir Link do Instagram
 
-## Contexto
+## Problema Identificado
 
-O painel atual do participante exibe apenas alguns campos básicos (email, telefone, faturamento, nicho), mas o JSON do webhook importa muitos dados adicionais que já estão salvos no banco mas não são exibidos:
-
-**Campos importados (atualmente salvos, mas não exibidos):**
-- CPF/CNPJ
-- Nome para crachá
-- Tem sócio?
-- Lucro líquido mensal
-- Objetivo no evento
-- Maior dificuldade no negócio
-- Nome do evento
-- Status de registro
-- Aceitou termo de imagem
-
----
-
-## Nova Estrutura do Painel
-
-### Aba "Dados" - Reorganização Completa
-
-A aba será dividida em 3 seções claras:
-
-#### Seção 1: Informações de Contato
-Card compacto com email, telefone e Instagram (mantém o formato atual)
-
-#### Seção 2: Dados Importados (Somente Leitura)
-Card destacado com todos os dados vindos do webhook:
-
-| Campo | Descrição |
-|-------|-----------|
-| CPF/CNPJ | Documento do participante |
-| Nome para Crachá | Nome curto para identificação |
-| Evento | Nome do evento inscrito |
-| Status do Registro | registered, confirmed, etc. |
-| Tem Sócio? | Sim/Não |
-| Faturamento | Faixa de faturamento mensal |
-| Lucro Líquido | Faixa de lucro mensal |
-| Nicho | Área de atuação profissional |
-| Objetivo no Evento | Texto longo - o que pretende aprender |
-| Maior Dificuldade | Texto longo - desafio atual no negócio |
-| Aceitou Termo de Imagem | Sim/Não |
-
-#### Seção 3: Informações Manuais (Editáveis)
-Mantém os campos atuais que são preenchidos pelos closers/admins:
-- Funil de origem
-- Closer que vendeu/convidou
-- Mentorado que convidou
-- Acompanhante
-- É uma oportunidade?
-- Quantas vezes foi chamado?
-- Cor
-- Qualificação (admin only)
-
----
-
-## Alterações Necessárias
-
-### Arquivo: `src/components/participants/ParticipantPanel.tsx`
-
-1. **Atualizar a interface `Participant`** para incluir os novos campos:
-   - `cpf_cnpj`, `nome_cracha`, `tem_socio`, `lucro_liquido`
-   - `objetivo_evento`, `maior_dificuldade`
-   - `event_name`, `registration_status`, `aceitou_termo_imagem`
-
-2. **Reorganizar a TabsContent "dados"** em 3 seções com Cards separados
-
-3. **Criar componentes visuais apropriados**:
-   - Campos de texto longo (objetivo/dificuldade) em cards expansíveis
-   - Badges para campos booleanos (tem sócio, aceitou termo)
-   - Grid de 2-3 colunas para campos curtos
-
----
-
-## Layout Visual Proposto
-
-```text
-+------------------------------------------+
-|  INFORMAÇÕES DE CONTATO                  |
-|  [Email] [Telefone] [Instagram]          |
-+------------------------------------------+
-
-+------------------------------------------+
-|  DADOS DO FORMULÁRIO (importados)        |
-+------------------------------------------+
-|  CPF/CNPJ         | Nome p/ Crachá       |
-|  481.818.328-84   | Sabrina Nogueira     |
-+-------------------+----------------------+
-|  Evento                                  |
-|  Intensivo Da Alta Performance           |
-+------------------------------------------+
-|  Status          | Tem Sócio?            |
-|  [registered]    | [Não]                 |
-+-------------------+----------------------+
-|  Faturamento     | Lucro Líquido         |
-|  Até R$ 5.000    | Até R$ 5.000          |
-+-------------------+----------------------+
-|  Nicho                                   |
-|  Nail Designer                           |
-+------------------------------------------+
-|  Objetivo no Evento                      |
-|  "Aprender estratégias de alta..."       |
-+------------------------------------------+
-|  Maior Dificuldade                       |
-|  "Minha maior dificuldade hoje é..."     |
-+------------------------------------------+
-|  [x] Aceitou termo de imagem             |
-+------------------------------------------+
-
-+------------------------------------------+
-|  INFORMAÇÕES MANUAIS (editáveis)         |
-+------------------------------------------+
-|  [Campos atuais mantidos]                |
-+------------------------------------------+
+Ao clicar no link do Instagram, a URL está sendo tratada como rota interna da aplicação:
+```
+/participantes/instagram.com/sabrinalice_
 ```
 
----
-
-## Seção Técnica
-
-### Interface Atualizada
-
-```typescript
-interface Participant {
-  // Campos existentes
-  id: string;
-  full_name: string;
-  email: string | null;
-  phone: string | null;
-  photo_url: string | null;
-  faturamento: string | null;
-  nicho: string | null;
-  instagram: string | null;
-  credenciou_dia1: boolean;
-  credenciou_dia2: boolean;
-  credenciou_dia3: boolean;
-  funil_origem: string | null;
-  closer_vendeu_id: string | null;
-  mentorado_convidou: string | null;
-  acompanhante: string | null;
-  is_oportunidade: boolean;
-  vezes_chamado: number;
-  cor: string | null;
-  qualificacao: string | null;
-  
-  // Novos campos importados
-  cpf_cnpj: string | null;
-  nome_cracha: string | null;
-  tem_socio: boolean;
-  lucro_liquido: string | null;
-  objetivo_evento: string | null;
-  maior_dificuldade: string | null;
-  event_name: string | null;
-  registration_status: string | null;
-  aceitou_termo_imagem: boolean;
-}
+Quando deveria ir para:
+```
+https://instagram.com/sabrinalice_
 ```
 
-### Arquivos a Modificar
+O código está correto no arquivo, mas algo está causando a perda do prefixo `https://`.
 
-1. **`src/components/participants/ParticipantPanel.tsx`**
-   - Expandir interface Participant
-   - Reestruturar aba "Dados" com as 3 seções
-   - Adicionar exibição dos novos campos
+## Solução
 
-2. **`src/pages/Participants.tsx`**
-   - Atualizar interface Participant para incluir novos campos
-   - Garantir que os dados são passados para o ParticipantPanel
+Aplicar correções em dois arquivos para garantir que a URL seja absoluta:
+
+### Correção 1: Usar URL completa com www
+
+Alterar de:
+```tsx
+href={`https://instagram.com/${participant.instagram.replace("@", "")}`}
+```
+
+Para:
+```tsx
+href={`https://www.instagram.com/${participant.instagram.replace("@", "").trim()}`}
+```
+
+### Correção 2: Adicionar tratamento para URLs já completas
+
+Alguns campos de instagram podem vir já com a URL completa. Adicionar lógica para detectar isso:
+
+```tsx
+const getInstagramUrl = (instagram: string) => {
+  const clean = instagram.replace("@", "").trim();
+  if (clean.startsWith("http")) return clean;
+  return `https://www.instagram.com/${clean}`;
+};
+```
+
+## Arquivos a Modificar
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/pages/Participants.tsx` | Atualizar href do link do Instagram (linha ~373) |
+| `src/components/participants/ParticipantPanel.tsx` | Atualizar href do link do Instagram (linha ~387) |
+
+## Detalhes Técnicos
+
+- Adicionar `.trim()` para remover espaços extras que possam existir
+- Usar `www.instagram.com` para garantir compatibilidade
+- Verificar se o valor já contém `http` para evitar duplicação do protocolo
