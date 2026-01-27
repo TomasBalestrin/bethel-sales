@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +17,6 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Users, Filter, Instagram, Loader2, X, Download } from "lucide-react";
-import { ParticipantPanel } from "@/components/participants/ParticipantPanel";
 import { BulkAssignBar } from "@/components/participants/BulkAssignBar";
 import { exportToCSV, participantExportColumns } from "@/lib/export";
 import { cn } from "@/lib/utils";
@@ -63,12 +63,12 @@ const colorMap: Record<string, string> = {
 };
 
 export default function Participants() {
+  const navigate = useNavigate();
   const { isAdmin, profile } = useAuth();
   const { toast } = useToast();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   
   // Filters
@@ -321,7 +321,7 @@ export default function Participants() {
                 "cursor-pointer transition-all hover:shadow-lg hover:border-primary/20",
                 selectedIds.includes(participant.id) && "ring-2 ring-primary"
               )}
-              onClick={() => setSelectedParticipant(participant)}
+              onClick={() => navigate(`/participantes/${participant.id}`)}
             >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
@@ -389,18 +389,6 @@ export default function Participants() {
           ))}
         </div>
       )}
-
-      {/* Participant Panel */}
-      <ParticipantPanel
-        participant={selectedParticipant}
-        onClose={() => setSelectedParticipant(null)}
-        onUpdate={() => {
-          fetchParticipants();
-          setSelectedParticipant(null);
-        }}
-        closers={closers}
-        isAdmin={isAdmin}
-      />
 
       {/* Bulk Assign Bar */}
       {isAdmin && (
