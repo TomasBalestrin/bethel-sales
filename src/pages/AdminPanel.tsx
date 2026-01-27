@@ -12,7 +12,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -33,7 +32,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Pencil, Trash2, UserPlus } from "lucide-react";
+import { Loader2, Plus, Pencil, Eye, EyeOff } from "lucide-react";
 import type { AppRole } from "@/lib/auth";
 
 interface UserWithRole {
@@ -52,18 +51,25 @@ export default function AdminPanel() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Form state
+  // Form state for edit
   const [formEmail, setFormEmail] = useState("");
   const [formName, setFormName] = useState("");
   const [formRole, setFormRole] = useState<AppRole>("closer");
 
+  // Form state for create
+  const [createEmail, setCreateEmail] = useState("");
+  const [createName, setCreateName] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+  const [createRole, setCreateRole] = useState<AppRole>("closer");
+
   const fetchUsers = async () => {
     setIsLoading(true);
     
-    // Fetch profiles with their roles
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
       .select("*")
@@ -79,7 +85,6 @@ export default function AdminPanel() {
       return;
     }
 
-    // Fetch roles
     const { data: roles, error: rolesError } = await supabase
       .from("user_roles")
       .select("*");
@@ -88,7 +93,6 @@ export default function AdminPanel() {
       console.error("Error fetching roles:", rolesError);
     }
 
-    // Combine profiles with roles
     const usersWithRoles: UserWithRole[] = (profiles || []).map((p) => {
       const userRole = roles?.find((r) => r.user_id === p.user_id);
       return {
@@ -105,16 +109,75 @@ export default function AdminPanel() {
     fetchUsers();
   }, []);
 
+  const handleCreateUser = async () => {
+    if (!createEmail || !createName || !createPassword) {
+      toast({
+        variant: "destructive",
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos.",
+      });
+      return;
+    }
+
+    if (createPassword.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Senha muito curta",
+        description: "A senha deve ter pelo menos 6 caracteres.",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Call edge function to create user (admin only)
+    const { data, error } = await supabase.functions.invoke("create-user", {
+      body: {
+        email: createEmail,
+        password: createPassword,
+        fullName: createName,
+        role: createRole,
+      },
+    });
+
+    setIsSubmitting(false);
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao criar usuário",
+        description: error.message || "Erro desconhecido",
+      });
+      return;
+    }
+
+    if (data?.error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao criar usuário",
+        description: data.error,
+      });
+      return;
+    }
+
+    toast({
+      title: "Usuário criado",
+      description: `${createName} foi criado com sucesso.`,
+    });
+
+    setIsCreateDialogOpen(false);
+    setCreateEmail("");
+    setCreateName("");
+    setCreatePassword("");
+    setCreateRole("closer");
+    fetchUsers();
+  };
+
   const handleAssignRole = async (userId: string, role: AppRole) => {
     setIsSubmitting(true);
 
-    // First, delete any existing role
-    await supabase
-      .from("user_roles")
-      .delete()
-      .eq("user_id", userId);
+    await supabase.from("user_roles").delete().eq("user_id", userId);
 
-    // Then insert the new role
     const { error } = await supabase
       .from("user_roles")
       .insert({ user_id: userId, role });
@@ -180,7 +243,6 @@ export default function AdminPanel() {
       return;
     }
 
-    // Update role if changed
     if (formRole !== editingUser.role) {
       await handleAssignRole(editingUser.user_id, formRole);
     }
@@ -221,6 +283,10 @@ export default function AdminPanel() {
             Gerencie usuários e permissões do sistema
           </p>
         </div>
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Usuário
+        </Button>
       </div>
 
       <Card>
@@ -324,6 +390,85 @@ export default function AdminPanel() {
           )}
         </CardContent>
       </Card>
+
+      {/* Create User Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar Novo Usuário</DialogTitle>
+            <DialogDescription>
+              Preencha os dados para criar um novo usuário no sistema.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="create-name">Nome Completo</Label>
+              <Input
+                id="create-name"
+                value={createName}
+                onChange={(e) => setCreateName(e.target.value)}
+                placeholder="Nome do usuário"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-email">Email</Label>
+              <Input
+                id="create-email"
+                type="email"
+                value={createEmail}
+                onChange={(e) => setCreateEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-password">Senha</Label>
+              <div className="relative">
+                <Input
+                  id="create-password"
+                  type={showPassword ? "text" : "password"}
+                  value={createPassword}
+                  onChange={(e) => setCreatePassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-role">Role</Label>
+              <Select value={createRole} onValueChange={(v) => setCreateRole(v as AppRole)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="closer">Closer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreateUser} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Criar Usuário
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit User Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
