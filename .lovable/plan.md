@@ -1,73 +1,257 @@
 
 
-# Plano: Atualizar Cores de Todos os Participantes Existentes
+# Plano: Permitir Edicao de Todas as Informacoes do Participante
 
 ## Resumo
 
-Executar atualizações SQL no banco de dados para atribuir as cores corretas a todos os 252 participantes com base nas faixas de faturamento.
+Transformar todos os campos de participantes em editaveis, permitindo que o admin modifique qualquer informacao diretamente na pagina de detalhes do participante.
 
-## Situação Atual
+## Situacao Atual
 
-| Faturamento | Quantidade | Cor a Atribuir |
-|-------------|------------|----------------|
-| Até R$ 5.000,00 | 29 | rosa |
-| R$ 5.000,00 até 10.000,00 | 36 | preto |
-| R$ 10.000,00 até 20.000,00 | 39 | azul_claro |
-| R$ 20.000,00 até 50.000,00 | 38 | verde |
-| R$ 50.000,00 até 100.000,00 | 25 | dourado |
-| R$ 100.000,00 até 250.000,00 | 22 | laranja |
-| R$ 250.000,00 até 500.000,00 | 4 | laranja |
-| Acima de R$ 500.000,00 | 4 | laranja |
-| Sem faturamento (null) | 55 | (não atribuir) |
+A pagina de detalhes tem duas secoes:
+- **Dados do Formulario**: Campos somente leitura (CPF, cracha, email, telefone, instagram, nicho, faturamento, etc.)
+- **Informacoes Manuais**: Campos editaveis (funil, closer, mentorado, acompanhante, oportunidade, vezes_chamado, cor, qualificacao)
 
-**Total: 252 participantes, 197 receberão cores**
+## Nova Estrutura
 
-## Atualizações a Executar
+Todos os campos serao editaveis. A organizacao sera reorganizada em cards mais intuitivos.
 
-Serão executados 8 comandos UPDATE no banco de dados:
+### Cards de Edicao
 
-```sql
--- Rosa: Até R$ 5.000,00
-UPDATE participants SET cor = 'rosa' 
-WHERE faturamento = 'Até R$ 5.000,00';
+```text
++--------------------------------------------------+
+| Dados Basicos                                     |
+| Nome Completo: [________________]                |
+| Nome p/ Cracha: [_______________]                |
+| CPF/CNPJ: [_____________________]                |
+| Evento: [_______________________]                |
++--------------------------------------------------+
 
--- Preto: R$ 5.000,00 até 10.000,00
-UPDATE participants SET cor = 'preto' 
-WHERE faturamento = 'R$ 5.000,00 até 10.000,00';
++--------------------------------------------------+
+| Contato                                          |
+| Email: [________________________]                |
+| Telefone: [_____________________]                |
+| Instagram: [____________________]                |
++--------------------------------------------------+
 
--- Azul Claro: R$ 10.000,00 até 20.000,00
-UPDATE participants SET cor = 'azul_claro' 
-WHERE faturamento = 'R$ 10.000,00 até 20.000,00';
++--------------------------------------------------+
+| Dados do Negocio                                 |
+| Nicho: [________________________]                |
+| Faturamento: [Select... v]                       |
+| Lucro Liquido: [________________]                |
+| Tem Socio: [Switch]                              |
++--------------------------------------------------+
 
--- Verde: R$ 20.000,00 até 50.000,00
-UPDATE participants SET cor = 'verde' 
-WHERE faturamento = 'R$ 20.000,00 até 50.000,00';
++--------------------------------------------------+
+| Objetivos e Desafios                             |
+| Objetivo no Evento: [Textarea]                   |
+| Maior Dificuldade: [Textarea]                    |
++--------------------------------------------------+
 
--- Dourado: R$ 50.000,00 até 100.000,00
-UPDATE participants SET cor = 'dourado' 
-WHERE faturamento = 'R$ 50.000,00 até 100.000,00';
++--------------------------------------------------+
+| Informacoes de Venda                             |
+| Funil de origem: [______________]                |
+| Closer que vendeu: [Select... v]                 |
+| Mentorado que convidou: [_______]                |
+| Acompanhante: [_________________]                |
+| E oportunidade: [Switch]                         |
+| Vezes chamado: [Select... v]                     |
+| Cor: [Color picker]                              |
+| Qualificacao: [Select... v] (admin only)         |
++--------------------------------------------------+
 
--- Laranja: R$ 100.000,00 até 250.000,00
-UPDATE participants SET cor = 'laranja' 
-WHERE faturamento = 'R$ 100.000,00 até 250.000,00';
++--------------------------------------------------+
+| Credenciamento                                    |
+| Dia 1: [Switch]    Dia 2: [Switch]    Dia 3: [Switch] |
+| Aceitou termo de imagem: [Switch]                |
+| Status: [________________]                       |
++--------------------------------------------------+
 
--- Laranja: R$ 250.000,00 até 500.000,00
-UPDATE participants SET cor = 'laranja' 
-WHERE faturamento = 'R$ 250.000,00 até 500.000,00';
-
--- Laranja: Acima de R$ 500.000,00
-UPDATE participants SET cor = 'laranja' 
-WHERE faturamento = 'Acima de R$ 500.000,00';
+               [Salvar Alteracoes]
 ```
 
-## Resultado Esperado
+## Campos a Tornar Editaveis
 
-Após a execução:
-- 197 participantes terão suas cores definidas automaticamente
-- 55 participantes com faturamento null permanecerão sem cor
-- As cores aparecerão imediatamente nos cards da listagem de participantes
+| Campo | Tipo de Input | Estado Atual |
+|-------|---------------|--------------|
+| full_name | Input text | Somente leitura |
+| email | Input email | Somente leitura |
+| phone | Input text | Somente leitura |
+| instagram | Input text | Somente leitura |
+| cpf_cnpj | Input text | Somente leitura |
+| nome_cracha | Input text | Somente leitura |
+| event_name | Input text | Somente leitura |
+| nicho | Input text | Somente leitura |
+| faturamento | Select | Somente leitura |
+| lucro_liquido | Input text | Somente leitura |
+| tem_socio | Switch | Somente leitura |
+| objetivo_evento | Textarea | Somente leitura |
+| maior_dificuldade | Textarea | Somente leitura |
+| credenciou_dia1 | Switch | Somente leitura |
+| credenciou_dia2 | Switch | Somente leitura |
+| credenciou_dia3 | Switch | Somente leitura |
+| aceitou_termo_imagem | Switch | Somente leitura |
+| registration_status | Input text | Somente leitura |
+| funil_origem | Input text | Ja editavel |
+| closer_vendeu_id | Select | Ja editavel |
+| mentorado_convidou | Input text | Ja editavel |
+| acompanhante | Input text | Ja editavel |
+| is_oportunidade | Switch | Ja editavel |
+| vezes_chamado | Select | Ja editavel |
+| cor | Color picker | Ja editavel |
+| qualificacao | Select | Ja editavel |
 
-## Implementação
+## Implementacao Tecnica
 
-As atualizações serão feitas via ferramenta de inserção de dados do banco, sem necessidade de modificar código.
+### 1. Novos Estados para Campos Editaveis
+
+```typescript
+// Dados Basicos
+const [fullName, setFullName] = useState("");
+const [nomeCracha, setNomeCracha] = useState("");
+const [cpfCnpj, setCpfCnpj] = useState("");
+const [eventName, setEventName] = useState("");
+
+// Contato
+const [email, setEmail] = useState("");
+const [phone, setPhone] = useState("");
+const [instagram, setInstagram] = useState("");
+
+// Negocio
+const [nicho, setNicho] = useState("");
+const [faturamento, setFaturamento] = useState("");
+const [lucroLiquido, setLucroLiquido] = useState("");
+const [temSocio, setTemSocio] = useState(false);
+
+// Objetivos
+const [objetivoEvento, setObjetivoEvento] = useState("");
+const [maiorDificuldade, setMaiorDificuldade] = useState("");
+
+// Credenciamento
+const [credenciouDia1, setCredenciouDia1] = useState(false);
+const [credenciouDia2, setCredenciouDia2] = useState(false);
+const [credenciouDia3, setCredenciouDia3] = useState(false);
+const [aceitouTermoImagem, setAceitouTermoImagem] = useState(false);
+const [registrationStatus, setRegistrationStatus] = useState("");
+```
+
+### 2. Carregar Dados nos Estados
+
+No `fetchParticipant`, inicializar todos os novos estados:
+
+```typescript
+setFullName(data.full_name || "");
+setNomeCracha(data.nome_cracha || "");
+setCpfCnpj(data.cpf_cnpj || "");
+setEventName(data.event_name || "");
+setEmail(data.email || "");
+setPhone(data.phone || "");
+setInstagram(data.instagram || "");
+setNicho(data.nicho || "");
+setFaturamento(data.faturamento || "");
+setLucroLiquido(data.lucro_liquido || "");
+setTemSocio(data.tem_socio || false);
+setObjetivoEvento(data.objetivo_evento || "");
+setMaiorDificuldade(data.maior_dificuldade || "");
+setCredenciouDia1(data.credenciou_dia1 || false);
+setCredenciouDia2(data.credenciou_dia2 || false);
+setCredenciouDia3(data.credenciou_dia3 || false);
+setAceitouTermoImagem(data.aceitou_termo_imagem || false);
+setRegistrationStatus(data.registration_status || "");
+```
+
+### 3. Atualizar Funcao handleSave
+
+Incluir todos os campos no update:
+
+```typescript
+const handleSave = async () => {
+  if (!participant) return;
+  
+  // Validacao do nome
+  if (!fullName.trim() || fullName.trim().length < 2) {
+    toast({ variant: "destructive", title: "Nome obrigatorio" });
+    return;
+  }
+  
+  setIsSaving(true);
+
+  // Determinar cor automatica se faturamento mudou
+  const selectedFaturamento = faturamentoOptions.find(f => f.value === faturamento);
+  const autoColor = selectedFaturamento?.cor || cor || null;
+
+  const updateData = {
+    full_name: fullName.trim(),
+    nome_cracha: nomeCracha || null,
+    cpf_cnpj: cpfCnpj || null,
+    event_name: eventName || null,
+    email: email || null,
+    phone: phone || null,
+    instagram: instagram ? instagram.replace("@", "").trim() : null,
+    nicho: nicho || null,
+    faturamento: faturamento || null,
+    cor: autoColor,
+    lucro_liquido: lucroLiquido || null,
+    tem_socio: temSocio,
+    objetivo_evento: objetivoEvento || null,
+    maior_dificuldade: maiorDificuldade || null,
+    credenciou_dia1: credenciouDia1,
+    credenciou_dia2: credenciouDia2,
+    credenciou_dia3: credenciouDia3,
+    aceitou_termo_imagem: aceitouTermoImagem,
+    registration_status: registrationStatus || null,
+    funil_origem: funilOrigem || null,
+    closer_vendeu_id: closerVendeuId || null,
+    mentorado_convidou: mentoradoConvidou || null,
+    acompanhante: acompanhante || null,
+    is_oportunidade: isOportunidade,
+    vezes_chamado: vezesChamado,
+    qualificacao: isAdmin && qualificacao ? qualificacao : participant.qualificacao,
+  };
+
+  const { error } = await supabase
+    .from("participants")
+    .update(updateData)
+    .eq("id", participant.id);
+
+  // ... tratamento de erro e sucesso
+};
+```
+
+### 4. Opcoes de Faturamento
+
+Reutilizar o mesmo mapeamento do CreateParticipantDialog:
+
+```typescript
+const faturamentoOptions = [
+  { value: "Até R$ 5.000,00", label: "Até R$ 5.000", cor: "rosa" },
+  { value: "R$ 5.000,00 até 10.000,00", label: "R$ 5.000 a R$ 10.000", cor: "preto" },
+  { value: "R$ 10.000,00 até 20.000,00", label: "R$ 10.000 a R$ 20.000", cor: "azul_claro" },
+  { value: "R$ 20.000,00 até 50.000,00", label: "R$ 20.000 a R$ 50.000", cor: "verde" },
+  { value: "R$ 50.000,00 até 100.000,00", label: "R$ 50.000 a R$ 100.000", cor: "dourado" },
+  { value: "R$ 100.000,00 até 250.000,00", label: "R$ 100.000 a R$ 250.000", cor: "laranja" },
+  { value: "R$ 250.000,00 até 500.000,00", label: "R$ 250.000 a R$ 500.000", cor: "laranja" },
+  { value: "Acima de R$ 500.000,00", label: "Acima de R$ 500.000", cor: "laranja" },
+];
+```
+
+## Arquivo a Modificar
+
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/pages/ParticipantDetail.tsx` | Adicionar estados para todos os campos, reorganizar UI com campos editaveis, atualizar funcao handleSave |
+
+## Comportamento
+
+1. Ao abrir a pagina de detalhes, todos os campos sao carregados nos estados editaveis
+2. O usuario pode modificar qualquer campo
+3. Ao clicar em "Salvar Alteracoes", todos os campos sao atualizados no banco
+4. A cor e atualizada automaticamente quando o faturamento e alterado
+5. Validacao basica: nome obrigatorio com minimo 2 caracteres
+
+## Restricoes de Acesso
+
+- Closers podem editar participantes atribuidos a eles (ja existe RLS)
+- Admins podem editar qualquer participante (ja existe RLS)
+- Campo "Qualificacao" continua visivel apenas para admins
 
