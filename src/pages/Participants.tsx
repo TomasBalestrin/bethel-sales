@@ -58,6 +58,7 @@ const colorMap: Record<string, string> = {
   rosa: "bg-participant-rosa",
   preto: "bg-participant-preto",
   azul_claro: "bg-participant-azul-claro",
+  verde: "bg-participant-verde",
   dourado: "bg-participant-dourado",
   laranja: "bg-participant-laranja",
 };

@@ -16,6 +16,47 @@ function parseBoolean(value: any): boolean {
   return false;
 }
 
+// Determine participant color based on faturamento (revenue) range
+function getColorFromFaturamento(faturamento: string | null): string | null {
+  if (!faturamento) return null;
+  
+  const lower = faturamento.toLowerCase();
+  
+  // Até R$ 5.000,00 = Rosa
+  if (lower.includes("até r$ 5.000") || lower.includes("ate r$ 5.000")) {
+    return "rosa";
+  }
+  // R$ 5.000,00 até 10.000,00 = Preto
+  if (lower.includes("5.000,00 até 10.000") || lower.includes("5.000,00 ate 10.000") ||
+      lower.includes("r$ 5.000,00 até r$ 10.000") || lower.includes("r$ 5.000,00 ate r$ 10.000")) {
+    return "preto";
+  }
+  // R$ 10.000,00 até 20.000,00 = Azul Claro
+  if (lower.includes("10.000,00 até 20.000") || lower.includes("10.000,00 ate 20.000") ||
+      lower.includes("r$ 10.000,00 até r$ 20.000") || lower.includes("r$ 10.000,00 ate r$ 20.000")) {
+    return "azul_claro";
+  }
+  // R$ 20.000,00 até 50.000,00 = Verde
+  if (lower.includes("20.000,00 até 50.000") || lower.includes("20.000,00 ate 50.000") ||
+      lower.includes("r$ 20.000,00 até r$ 50.000") || lower.includes("r$ 20.000,00 ate r$ 50.000")) {
+    return "verde";
+  }
+  // R$ 50.000,00 até 100.000,00 = Dourado
+  if (lower.includes("50.000,00 até 100.000") || lower.includes("50.000,00 ate 100.000") ||
+      lower.includes("r$ 50.000,00 até r$ 100.000") || lower.includes("r$ 50.000,00 ate r$ 100.000")) {
+    return "dourado";
+  }
+  // R$ 100.000,00+ = Laranja (todas as faixas acima)
+  if (lower.includes("100.000,00 até") || lower.includes("100.000,00 ate") ||
+      lower.includes("250.000,00 até") || lower.includes("250.000,00 ate") ||
+      lower.includes("acima de") || lower.includes("r$ 100.000") ||
+      lower.includes("r$ 250.000") || lower.includes("r$ 500.000")) {
+    return "laranja";
+  }
+  
+  return null;
+}
+
 // Helper to find field by partial key match
 function findFieldByPartialKey(fields: Record<string, any>, partial: string): string | null {
   const key = Object.keys(fields).find((k) =>
@@ -134,6 +175,7 @@ serve(async (req) => {
 
         participantData = {
           ...extracted,
+          cor: getColorFromFaturamento(extracted.faturamento),
           webhook_data: participant,
         };
       } else {
@@ -147,6 +189,7 @@ serve(async (req) => {
 
         participantData = {
           ...extracted,
+          cor: getColorFromFaturamento(extracted.faturamento),
           webhook_data: participant,
         };
       }

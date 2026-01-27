@@ -61,6 +61,7 @@ export default {
           rosa: "hsl(var(--participant-rosa))",
           preto: "hsl(var(--participant-preto))",
           "azul-claro": "hsl(var(--participant-azul-claro))",
+          verde: "hsl(var(--participant-verde))",
           dourado: "hsl(var(--participant-dourado))",
           laranja: "hsl(var(--participant-laranja))",
         },
