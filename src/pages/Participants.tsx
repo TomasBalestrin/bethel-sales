@@ -42,6 +42,16 @@ interface Participant {
   cor: string | null;
   qualificacao: string | null;
   created_at: string;
+  // Novos campos importados
+  cpf_cnpj: string | null;
+  nome_cracha: string | null;
+  tem_socio: boolean | null;
+  lucro_liquido: string | null;
+  objetivo_evento: string | null;
+  maior_dificuldade: string | null;
+  event_name: string | null;
+  registration_status: string | null;
+  aceitou_termo_imagem: boolean | null;
 }
 
 const colorMap: Record<string, string> = {
