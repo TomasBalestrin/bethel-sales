@@ -144,82 +144,115 @@ export type Database = {
       }
       participants: {
         Row: {
+          aceitou_termo_imagem: boolean | null
           acompanhante: string | null
           closer_vendeu_id: string | null
           cor: Database["public"]["Enums"]["participant_color"] | null
+          cpf_cnpj: string | null
           created_at: string | null
           credenciou_dia1: boolean | null
           credenciou_dia2: boolean | null
           credenciou_dia3: boolean | null
           email: string | null
-          faturamento: number | null
+          event_name: string | null
+          external_id: string | null
+          faturamento: string | null
+          form_name: string | null
           full_name: string
           funil_origem: string | null
           id: string
           imported_at: string | null
           instagram: string | null
           is_oportunidade: boolean | null
+          lucro_liquido: string | null
+          maior_dificuldade: string | null
           mentorado_convidou: string | null
           nicho: string | null
+          nome_cracha: string | null
+          objetivo_evento: string | null
           phone: string | null
           photo_url: string | null
           qualificacao:
             | Database["public"]["Enums"]["opportunity_qualification"]
             | null
+          registration_status: string | null
+          tem_socio: boolean | null
           updated_at: string | null
           vezes_chamado: number | null
           webhook_data: Json | null
         }
         Insert: {
+          aceitou_termo_imagem?: boolean | null
           acompanhante?: string | null
           closer_vendeu_id?: string | null
           cor?: Database["public"]["Enums"]["participant_color"] | null
+          cpf_cnpj?: string | null
           created_at?: string | null
           credenciou_dia1?: boolean | null
           credenciou_dia2?: boolean | null
           credenciou_dia3?: boolean | null
           email?: string | null
-          faturamento?: number | null
+          event_name?: string | null
+          external_id?: string | null
+          faturamento?: string | null
+          form_name?: string | null
           full_name: string
           funil_origem?: string | null
           id?: string
           imported_at?: string | null
           instagram?: string | null
           is_oportunidade?: boolean | null
+          lucro_liquido?: string | null
+          maior_dificuldade?: string | null
           mentorado_convidou?: string | null
           nicho?: string | null
+          nome_cracha?: string | null
+          objetivo_evento?: string | null
           phone?: string | null
           photo_url?: string | null
           qualificacao?:
             | Database["public"]["Enums"]["opportunity_qualification"]
             | null
+          registration_status?: string | null
+          tem_socio?: boolean | null
           updated_at?: string | null
           vezes_chamado?: number | null
           webhook_data?: Json | null
         }
         Update: {
+          aceitou_termo_imagem?: boolean | null
           acompanhante?: string | null
           closer_vendeu_id?: string | null
           cor?: Database["public"]["Enums"]["participant_color"] | null
+          cpf_cnpj?: string | null
           created_at?: string | null
           credenciou_dia1?: boolean | null
           credenciou_dia2?: boolean | null
           credenciou_dia3?: boolean | null
           email?: string | null
-          faturamento?: number | null
+          event_name?: string | null
+          external_id?: string | null
+          faturamento?: string | null
+          form_name?: string | null
           full_name?: string
           funil_origem?: string | null
           id?: string
           imported_at?: string | null
           instagram?: string | null
           is_oportunidade?: boolean | null
+          lucro_liquido?: string | null
+          maior_dificuldade?: string | null
           mentorado_convidou?: string | null
           nicho?: string | null
+          nome_cracha?: string | null
+          objetivo_evento?: string | null
           phone?: string | null
           photo_url?: string | null
           qualificacao?:
             | Database["public"]["Enums"]["opportunity_qualification"]
             | null
+          registration_status?: string | null
+          tem_socio?: boolean | null
           updated_at?: string | null
           vezes_chamado?: number | null
           webhook_data?: Json | null

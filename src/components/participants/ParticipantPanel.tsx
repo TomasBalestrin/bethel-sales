@@ -42,7 +42,7 @@ interface Participant {
   email: string | null;
   phone: string | null;
   photo_url: string | null;
-  faturamento: number | null;
+  faturamento: string | null;
   nicho: string | null;
   instagram: string | null;
   credenciou_dia1: boolean;
@@ -309,6 +309,18 @@ export function ParticipantPanel({ participant, onClose, onUpdate, closers, isAd
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
   };
 
+  const formatFaturamento = (value: string | null) => {
+    if (!value) return "-";
+    // If it's already a formatted string (e.g., "Até R$ 5.000,00"), return it directly
+    if (typeof value === "string" && value.includes("R$")) return value;
+    // Try to parse as number for legacy data
+    const num = parseFloat(value);
+    if (!isNaN(num)) {
+      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(num);
+    }
+    return value;
+  };
+
   const assignedCloserName = closers.find(c => c.id === assignedCloser)?.full_name;
 
   if (!participant) return null;
@@ -370,7 +382,7 @@ export function ParticipantPanel({ participant, onClose, onUpdate, closers, isAd
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="bg-muted/50 rounded-lg p-3">
                   <p className="text-muted-foreground">Faturamento</p>
-                  <p className="font-semibold">{formatCurrency(participant.faturamento)}</p>
+                  <p className="font-semibold">{formatFaturamento(participant.faturamento)}</p>
                 </div>
                 <div className="bg-muted/50 rounded-lg p-3">
                   <p className="text-muted-foreground">Nicho</p>

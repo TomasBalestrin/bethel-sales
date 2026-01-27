@@ -48,7 +48,7 @@ interface Participant {
   email: string | null;
   phone: string | null;
   instagram: string | null;
-  faturamento: number | null;
+  faturamento: string | null;
   nicho: string | null;
   cor: string | null;
   vezes_chamado: number | null;

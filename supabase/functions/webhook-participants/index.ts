@@ -7,6 +7,97 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
+// Helper to convert string to boolean
+function parseBoolean(value: any): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    return ["true", "sim", "1"].includes(value.toLowerCase());
+  }
+  return false;
+}
+
+// Helper to find field by partial key match
+function findFieldByPartialKey(fields: Record<string, any>, partial: string): string | null {
+  const key = Object.keys(fields).find((k) =>
+    k.toLowerCase().includes(partial.toLowerCase())
+  );
+  return key ? fields[key] : null;
+}
+
+// Check if payload has the new nested fields structure
+function hasFieldsStructure(participant: any): boolean {
+  return participant.fields && typeof participant.fields === "object";
+}
+
+// Extract data from new format (fields structure)
+function extractFromFields(participant: any) {
+  const fields = participant.fields || {};
+
+  return {
+    full_name: fields.nome_completo || null,
+    email: fields.digite_seu_melhor_email || null,
+    phone: fields.digite_seu_whatsapp || null,
+    instagram: fields.qual_seu_do_instagram || null,
+    cpf_cnpj: fields.digite_o_seu_cpf_ou_cnpj || null,
+    nome_cracha: fields.nome_para_cracha || null,
+    tem_socio: parseBoolean(fields.voce_tem_socio),
+    nicho: fields.qual_sua_area_de_atuacao_profissional || null,
+    faturamento: fields.quanto_voce_fatura_por_mes || null,
+    lucro_liquido: fields.qual_seu_lucro_liquido_mensal || null,
+    objetivo_evento: findFieldByPartialKey(fields, "pretende_aprender"),
+    maior_dificuldade: findFieldByPartialKey(fields, "maior_dificuldade"),
+    photo_url: findFieldByPartialKey(fields, "foto_de_perfil"),
+    aceitou_termo_imagem: parseBoolean(
+      fields.termo_de_uso_de_imagem_e_responsabilidade
+    ),
+    // Root-level metadata
+    external_id: participant.participant_id || null,
+    form_name: participant.form_name || null,
+    event_name: participant.event_name || null,
+    registration_status: participant.status || null,
+  };
+}
+
+// Extract data from legacy format (fields at root level)
+function extractFromRoot(participant: any) {
+  const {
+    full_name,
+    nome,
+    name,
+    email,
+    phone,
+    telefone,
+    photo_url,
+    foto,
+    faturamento,
+    revenue,
+    nicho,
+    niche,
+    instagram,
+    credenciou_dia1,
+    credenciou_dia2,
+    credenciou_dia3,
+    dia1,
+    dia2,
+    dia3,
+  } = participant;
+
+  const participantName = full_name || nome || name;
+
+  return {
+    full_name: participantName,
+    email: email || null,
+    phone: phone || telefone || null,
+    photo_url: photo_url || foto || null,
+    faturamento: faturamento || revenue || null,
+    nicho: nicho || niche || null,
+    instagram: instagram || null,
+    credenciou_dia1: credenciou_dia1 ?? dia1 ?? false,
+    credenciou_dia2: credenciou_dia2 ?? dia2 ?? false,
+    credenciou_dia3: credenciou_dia3 ?? dia3 ?? false,
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -15,7 +106,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -29,91 +120,95 @@ serve(async (req) => {
     const results = [];
 
     for (const participant of participants) {
-      const {
-        // Required
-        full_name,
-        nome,
-        name,
-        // Optional fields
-        email,
-        phone,
-        telefone,
-        photo_url,
-        foto,
-        faturamento,
-        revenue,
-        nicho,
-        niche,
-        instagram,
-        // Credenciamento
-        credenciou_dia1,
-        credenciou_dia2,
-        credenciou_dia3,
-        dia1,
-        dia2,
-        dia3,
-      } = participant;
+      let participantData: Record<string, any>;
 
-      const participantName = full_name || nome || name;
-      
-      if (!participantName) {
-        results.push({ error: "Nome é obrigatório", data: participant });
-        continue;
+      // Detect format and extract accordingly
+      if (hasFieldsStructure(participant)) {
+        console.log("Detected new format with fields structure");
+        const extracted = extractFromFields(participant);
+
+        if (!extracted.full_name) {
+          results.push({ error: "Nome é obrigatório", data: participant });
+          continue;
+        }
+
+        participantData = {
+          ...extracted,
+          webhook_data: participant,
+        };
+      } else {
+        console.log("Detected legacy format with root-level fields");
+        const extracted = extractFromRoot(participant);
+
+        if (!extracted.full_name) {
+          results.push({ error: "Nome é obrigatório", data: participant });
+          continue;
+        }
+
+        participantData = {
+          ...extracted,
+          webhook_data: participant,
+        };
       }
 
-      const participantData = {
-        full_name: participantName,
-        email: email || null,
-        phone: phone || telefone || null,
-        photo_url: photo_url || foto || null,
-        faturamento: faturamento || revenue || null,
-        nicho: nicho || niche || null,
-        instagram: instagram || null,
-        credenciou_dia1: credenciou_dia1 ?? dia1 ?? false,
-        credenciou_dia2: credenciou_dia2 ?? dia2 ?? false,
-        credenciou_dia3: credenciou_dia3 ?? dia3 ?? false,
-        webhook_data: participant,
-      };
+      // Try to find existing participant by email OR external_id
+      let existingId: string | null = null;
 
-      // Check if participant exists by email
       if (participantData.email) {
-        const { data: existing } = await supabase
+        const { data: existingByEmail } = await supabase
           .from("participants")
           .select("id")
           .eq("email", participantData.email)
           .single();
 
-        if (existing) {
-          // Update existing
-          const { data, error } = await supabase
-            .from("participants")
-            .update(participantData)
-            .eq("id", existing.id)
-            .select()
-            .single();
-
-          if (error) {
-            console.error("Update error:", error);
-            results.push({ error: error.message, email: participantData.email });
-          } else {
-            results.push({ success: true, action: "updated", id: data.id });
-          }
-          continue;
+        if (existingByEmail) {
+          existingId = existingByEmail.id;
         }
       }
 
-      // Insert new
-      const { data, error } = await supabase
-        .from("participants")
-        .insert(participantData)
-        .select()
-        .single();
+      if (!existingId && participantData.external_id) {
+        const { data: existingByExternalId } = await supabase
+          .from("participants")
+          .select("id")
+          .eq("external_id", participantData.external_id)
+          .single();
 
-      if (error) {
-        console.error("Insert error:", error);
-        results.push({ error: error.message, name: participantName });
+        if (existingByExternalId) {
+          existingId = existingByExternalId.id;
+        }
+      }
+
+      if (existingId) {
+        // Update existing participant
+        const { data, error } = await supabase
+          .from("participants")
+          .update(participantData)
+          .eq("id", existingId)
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Update error:", error);
+          results.push({ error: error.message, email: participantData.email });
+        } else {
+          console.log("Updated participant:", data.id);
+          results.push({ success: true, action: "updated", id: data.id });
+        }
       } else {
-        results.push({ success: true, action: "created", id: data.id });
+        // Insert new participant
+        const { data, error } = await supabase
+          .from("participants")
+          .insert(participantData)
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Insert error:", error);
+          results.push({ error: error.message, name: participantData.full_name });
+        } else {
+          console.log("Created participant:", data.id);
+          results.push({ success: true, action: "created", id: data.id });
+        }
       }
     }
 
