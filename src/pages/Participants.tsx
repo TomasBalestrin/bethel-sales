@@ -370,7 +370,11 @@ export default function Participants() {
 
                 {participant.instagram && (
                   <a
-                    href={`https://instagram.com/${participant.instagram.replace("@", "")}`}
+                    href={(() => {
+                      const clean = participant.instagram.replace("@", "").trim();
+                      if (clean.startsWith("http")) return clean;
+                      return `https://www.instagram.com/${clean}`;
+                    })()}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}

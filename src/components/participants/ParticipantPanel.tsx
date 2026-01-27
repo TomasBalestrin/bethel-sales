@@ -384,7 +384,11 @@ export function ParticipantPanel({ participant, onClose, onUpdate, closers, isAd
                     )}
                     {participant.instagram && (
                       <a
-                        href={`https://instagram.com/${participant.instagram.replace("@", "")}`}
+                        href={(() => {
+                          const clean = participant.instagram.replace("@", "").trim();
+                          if (clean.startsWith("http")) return clean;
+                          return `https://www.instagram.com/${clean}`;
+                        })()}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary"
