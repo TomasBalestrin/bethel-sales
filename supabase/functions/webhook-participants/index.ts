@@ -139,6 +139,58 @@ function extractFromRoot(participant: any) {
   };
 }
 
+// Merge participant data - only update fields that are empty in existing record
+function mergeParticipantData(
+  existing: Record<string, any>,
+  incoming: Record<string, any>
+): Record<string, any> | null {
+  const fieldsToMerge = [
+    'full_name', 'email', 'phone', 'instagram', 'cpf_cnpj',
+    'nome_cracha', 'nicho', 'faturamento', 'lucro_liquido',
+    'objetivo_evento', 'maior_dificuldade', 'photo_url',
+    'external_id', 'form_name', 'event_name', 'registration_status'
+  ];
+
+  const updates: Record<string, any> = {};
+  let hasUpdates = false;
+
+  for (const field of fieldsToMerge) {
+    const existingValue = existing[field];
+    const incomingValue = incoming[field];
+
+    // Only update if existing is empty and incoming has value
+    if (
+      (existingValue === null || existingValue === undefined || existingValue === '') &&
+      incomingValue !== null && incomingValue !== undefined && incomingValue !== ''
+    ) {
+      updates[field] = incomingValue;
+      hasUpdates = true;
+    }
+  }
+
+  // Boolean fields - only update if currently false and incoming is true
+  if (!existing.tem_socio && incoming.tem_socio) {
+    updates.tem_socio = true;
+    hasUpdates = true;
+  }
+  if (!existing.aceitou_termo_imagem && incoming.aceitou_termo_imagem) {
+    updates.aceitou_termo_imagem = true;
+    hasUpdates = true;
+  }
+
+  // If faturamento was updated, recalculate color
+  if (updates.faturamento) {
+    updates.cor = getColorFromFaturamento(updates.faturamento);
+  }
+
+  // Always update webhook_data to keep history if there are updates
+  if (hasUpdates) {
+    updates.webhook_data = incoming.webhook_data;
+  }
+
+  return hasUpdates ? updates : null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -194,48 +246,68 @@ serve(async (req) => {
         };
       }
 
-      // Try to find existing participant by email OR external_id
-      let existingId: string | null = null;
+      // Try to find existing participant by email OR external_id - fetch ALL fields
+      let existingParticipant: Record<string, any> | null = null;
 
       if (participantData.email) {
         const { data: existingByEmail } = await supabase
           .from("participants")
-          .select("id")
+          .select("*")
           .eq("email", participantData.email)
-          .single();
+          .maybeSingle();
 
         if (existingByEmail) {
-          existingId = existingByEmail.id;
+          existingParticipant = existingByEmail;
         }
       }
 
-      if (!existingId && participantData.external_id) {
+      if (!existingParticipant && participantData.external_id) {
         const { data: existingByExternalId } = await supabase
           .from("participants")
-          .select("id")
+          .select("*")
           .eq("external_id", participantData.external_id)
-          .single();
+          .maybeSingle();
 
         if (existingByExternalId) {
-          existingId = existingByExternalId.id;
+          existingParticipant = existingByExternalId;
         }
       }
 
-      if (existingId) {
-        // Update existing participant
-        const { data, error } = await supabase
-          .from("participants")
-          .update(participantData)
-          .eq("id", existingId)
-          .select()
-          .single();
+      if (existingParticipant) {
+        // Merge data - only update empty fields
+        const updates = mergeParticipantData(existingParticipant, participantData);
 
-        if (error) {
-          console.error("Update error:", error);
-          results.push({ error: error.message, email: participantData.email });
+        if (updates === null) {
+          // Nothing to update - skip
+          console.log("Participante existente sem campos para completar:", existingParticipant.id);
+          results.push({ 
+            success: true, 
+            action: "skipped", 
+            id: existingParticipant.id,
+            reason: "Todos os campos já preenchidos"
+          });
         } else {
-          console.log("Updated participant:", data.id);
-          results.push({ success: true, action: "updated", id: data.id });
+          // Update only empty fields
+          const { data, error } = await supabase
+            .from("participants")
+            .update(updates)
+            .eq("id", existingParticipant.id)
+            .select()
+            .single();
+
+          if (error) {
+            console.error("Update error:", error);
+            results.push({ error: error.message, email: participantData.email });
+          } else {
+            const fieldsUpdated = Object.keys(updates).filter(k => k !== 'webhook_data');
+            console.log("Campos completados:", fieldsUpdated);
+            results.push({ 
+              success: true, 
+              action: "merged", 
+              id: data.id,
+              fields_updated: fieldsUpdated
+            });
+          }
         }
       } else {
         // Insert new participant
