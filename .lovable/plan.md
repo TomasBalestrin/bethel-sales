@@ -1,4 +1,5 @@
 
+
 # Plano: Corrigir Link do Instagram
 
 ## Problema Identificado
@@ -15,11 +16,11 @@ https://instagram.com/sabrinalice_
 
 O código está correto no arquivo, mas algo está causando a perda do prefixo `https://`.
 
-## Solução
+## Solucao
 
-Aplicar correções em dois arquivos para garantir que a URL seja absoluta:
+Aplicar correcoes em dois arquivos para garantir que a URL seja absoluta:
 
-### Correção 1: Usar URL completa com www
+### Correcao 1: Usar URL completa com www
 
 Alterar de:
 ```tsx
@@ -31,9 +32,9 @@ Para:
 href={`https://www.instagram.com/${participant.instagram.replace("@", "").trim()}`}
 ```
 
-### Correção 2: Adicionar tratamento para URLs já completas
+### Correcao 2: Adicionar tratamento para URLs ja completas
 
-Alguns campos de instagram podem vir já com a URL completa. Adicionar lógica para detectar isso:
+Alguns campos de instagram podem vir ja com a URL completa. Adicionar logica para detectar isso:
 
 ```tsx
 const getInstagramUrl = (instagram: string) => {
@@ -45,13 +46,15 @@ const getInstagramUrl = (instagram: string) => {
 
 ## Arquivos a Modificar
 
-| Arquivo | Alteração |
+| Arquivo | Alteracao |
 |---------|-----------|
-| `src/pages/Participants.tsx` | Atualizar href do link do Instagram (linha ~373) |
+| `src/pages/Participants.tsx` | Atualizar href do link do Instagram (linha ~276) |
 | `src/components/participants/ParticipantPanel.tsx` | Atualizar href do link do Instagram (linha ~387) |
 
-## Detalhes Técnicos
+## Detalhes Tecnicos
 
-- Adicionar `.trim()` para remover espaços extras que possam existir
+- Adicionar `.trim()` para remover espacos extras que possam existir
 - Usar `www.instagram.com` para garantir compatibilidade
-- Verificar se o valor já contém `http` para evitar duplicação do protocolo
+- Verificar se o valor ja contem `http` para evitar duplicacao do protocolo
+- Criar funcao helper `getInstagramUrl` em ambos os arquivos para padronizar
+
