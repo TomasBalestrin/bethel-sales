@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Participants from "./pages/Participants";
 import Closers from "./pages/Closers";
 import AdminPanel from "./pages/AdminPanel";
+import DiscForm from "./pages/DiscForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/disc/:token" element={<DiscForm />} />
             <Route element={<AppLayout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/participantes" element={<Participants />} />
