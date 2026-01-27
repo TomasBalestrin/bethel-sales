@@ -29,7 +29,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
-            <Route path="/disc/:token" element={<DiscForm />} />
+            <Route path="/teste/:code" element={<DiscForm />} />
+            <Route path="/disc/:token" element={<DiscForm />} /> {/* Legacy route */}
             <Route element={<AppLayout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/participantes" element={<Participants />} />

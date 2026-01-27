@@ -268,24 +268,46 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // GET form by token
+    // GET form by token or short_code
     if (req.method === "GET") {
-      const token = url.searchParams.get("token");
-      if (!token) {
+      const code = url.searchParams.get("code") || url.searchParams.get("token");
+      if (!code) {
         return new Response(
-          JSON.stringify({ error: "Token obrigatório" }),
+          JSON.stringify({ error: "Código obrigatório" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const { data: form, error } = await supabase
-        .from("disc_forms")
-        .select("*, participants(full_name, photo_url)")
-        .eq("form_token", token)
-        .single();
+      // Try to find by short_code first (new format), then by form_token (legacy)
+      let form = null;
+      let error = null;
+
+      // Try short_code first (6 chars, alphanumeric uppercase)
+      const isShortCode = code.length <= 8 && /^[A-Z0-9]+$/.test(code);
+      
+      if (isShortCode) {
+        const result = await supabase
+          .from("disc_forms")
+          .select("*, participants(full_name, photo_url)")
+          .eq("short_code", code)
+          .maybeSingle();
+        form = result.data;
+        error = result.error;
+      }
+
+      // Fallback to form_token if not found
+      if (!form) {
+        const result = await supabase
+          .from("disc_forms")
+          .select("*, participants(full_name, photo_url)")
+          .eq("form_token", code)
+          .maybeSingle();
+        form = result.data;
+        error = result.error;
+      }
 
       if (error || !form) {
-        console.log("Form not found for token:", token, error);
+        console.log("Form not found for code:", code, error);
         return new Response(
           JSON.stringify({ error: "Formulário não encontrado" }),
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -351,22 +373,42 @@ serve(async (req) => {
     // POST submit responses
     if (req.method === "POST") {
       const { token, responses, open_answers } = await req.json();
+      const code = token; // Can be either short_code or form_token
 
-      console.log("Received submission:", { token, responses: Object.keys(responses || {}).length, open_answers });
+      console.log("Received submission:", { code, responses: Object.keys(responses || {}).length, open_answers });
 
-      if (!token || !responses) {
+      if (!code || !responses) {
         return new Response(
-          JSON.stringify({ error: "Token e respostas são obrigatórios" }),
+          JSON.stringify({ error: "Código e respostas são obrigatórios" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Verify form
-      const { data: form, error: formError } = await supabase
-        .from("disc_forms")
-        .select("*, participants(*)")
-        .eq("form_token", token)
-        .single();
+      // Try to find by short_code first, then by form_token
+      let form = null;
+      let formError = null;
+
+      const isShortCode = code.length <= 8 && /^[A-Z0-9]+$/.test(code);
+      
+      if (isShortCode) {
+        const result = await supabase
+          .from("disc_forms")
+          .select("*, participants(*)")
+          .eq("short_code", code)
+          .maybeSingle();
+        form = result.data;
+        formError = result.error;
+      }
+
+      if (!form) {
+        const result = await supabase
+          .from("disc_forms")
+          .select("*, participants(*)")
+          .eq("form_token", code)
+          .maybeSingle();
+        form = result.data;
+        formError = result.error;
+      }
 
       if (formError || !form) {
         console.log("Form not found:", formError);

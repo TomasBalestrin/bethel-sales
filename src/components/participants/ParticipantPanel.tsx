@@ -147,12 +147,15 @@ export function ParticipantPanel({ participant, onClose, onUpdate, closers, isAd
     
     const { data: form } = await supabase
       .from("disc_forms")
-      .select("id, form_token")
+      .select("id, form_token, short_code")
       .eq("participant_id", participant.id)
-      .single();
+      .maybeSingle();
 
     if (form) {
-      setDiscFormUrl(`${window.location.origin}/disc/${form.form_token}`);
+      // Use short_code if available, otherwise fallback to form_token
+      const code = form.short_code || form.form_token;
+      const route = form.short_code ? 'teste' : 'disc';
+      setDiscFormUrl(`${window.location.origin}/${route}/${code}`);
       
       const { data: response } = await supabase
         .from("disc_responses")
@@ -220,7 +223,7 @@ export function ParticipantPanel({ participant, onClose, onUpdate, closers, isAd
     const { data, error } = await supabase
       .from("disc_forms")
       .insert({ participant_id: participant.id })
-      .select("form_token")
+      .select("form_token, short_code")
       .single();
 
     setIsLoading(false);
@@ -234,7 +237,8 @@ export function ParticipantPanel({ participant, onClose, onUpdate, closers, isAd
       return;
     }
 
-    const url = `${window.location.origin}/disc/${data.form_token}`;
+    // Use the new short_code for friendly URLs
+    const url = `${window.location.origin}/teste/${data.short_code}`;
     setDiscFormUrl(url);
     toast({ title: "Formulário gerado!", description: "Link copiado para a área de transferência." });
     navigator.clipboard.writeText(url);
