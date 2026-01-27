@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Instagram, Phone, Mail, Loader2, Copy, Check, ExternalLink, ArrowLeft } from "lucide-react";
+import { Loader2, Copy, Check, ExternalLink, ArrowLeft } from "lucide-react";
 import { SalesTab } from "@/components/participants/SalesTab";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +77,17 @@ const qualifications = [
   { value: "baixo", label: "Baixo Qualificada", class: "bg-qualification-baixo" },
 ];
 
+const faturamentoOptions = [
+  { value: "Até R$ 5.000,00", label: "Até R$ 5.000", cor: "rosa" },
+  { value: "R$ 5.000,00 até 10.000,00", label: "R$ 5.000 a R$ 10.000", cor: "preto" },
+  { value: "R$ 10.000,00 até 20.000,00", label: "R$ 10.000 a R$ 20.000", cor: "azul_claro" },
+  { value: "R$ 20.000,00 até 50.000,00", label: "R$ 20.000 a R$ 50.000", cor: "verde" },
+  { value: "R$ 50.000,00 até 100.000,00", label: "R$ 50.000 a R$ 100.000", cor: "dourado" },
+  { value: "R$ 100.000,00 até 250.000,00", label: "R$ 100.000 a R$ 250.000", cor: "laranja" },
+  { value: "R$ 250.000,00 até 500.000,00", label: "R$ 250.000 a R$ 500.000", cor: "laranja" },
+  { value: "Acima de R$ 500.000,00", label: "Acima de R$ 500.000", cor: "laranja" },
+];
+
 export default function ParticipantDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -94,7 +105,36 @@ export default function ParticipantDetail() {
   const [copied, setCopied] = useState(false);
   const [assignedCloser, setAssignedCloser] = useState<string | null>(null);
 
-  // Form state
+  // ============ EDITABLE FORM STATES ============
+  // Dados Básicos
+  const [fullName, setFullName] = useState("");
+  const [nomeCracha, setNomeCracha] = useState("");
+  const [cpfCnpj, setCpfCnpj] = useState("");
+  const [eventName, setEventName] = useState("");
+
+  // Contato
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [instagram, setInstagram] = useState("");
+
+  // Negócio
+  const [nicho, setNicho] = useState("");
+  const [faturamento, setFaturamento] = useState("");
+  const [lucroLiquido, setLucroLiquido] = useState("");
+  const [temSocio, setTemSocio] = useState(false);
+
+  // Objetivos
+  const [objetivoEvento, setObjetivoEvento] = useState("");
+  const [maiorDificuldade, setMaiorDificuldade] = useState("");
+
+  // Credenciamento
+  const [credenciouDia1, setCredenciouDia1] = useState(false);
+  const [credenciouDia2, setCredenciouDia2] = useState(false);
+  const [credenciouDia3, setCredenciouDia3] = useState(false);
+  const [aceitouTermoImagem, setAceitouTermoImagem] = useState(false);
+  const [registrationStatus, setRegistrationStatus] = useState("");
+
+  // Informações de Venda
   const [funilOrigem, setFunilOrigem] = useState("");
   const [closerVendeuId, setCloserVendeuId] = useState("");
   const [mentoradoConvidou, setMentoradoConvidou] = useState("");
@@ -135,6 +175,26 @@ export default function ParticipantDetail() {
     }
 
     setParticipant(data);
+    
+    // Carregar todos os estados editáveis
+    setFullName(data.full_name || "");
+    setNomeCracha(data.nome_cracha || "");
+    setCpfCnpj(data.cpf_cnpj || "");
+    setEventName(data.event_name || "");
+    setEmail(data.email || "");
+    setPhone(data.phone || "");
+    setInstagram(data.instagram || "");
+    setNicho(data.nicho || "");
+    setFaturamento(data.faturamento || "");
+    setLucroLiquido(data.lucro_liquido || "");
+    setTemSocio(data.tem_socio || false);
+    setObjetivoEvento(data.objetivo_evento || "");
+    setMaiorDificuldade(data.maior_dificuldade || "");
+    setCredenciouDia1(data.credenciou_dia1 || false);
+    setCredenciouDia2(data.credenciou_dia2 || false);
+    setCredenciouDia3(data.credenciou_dia3 || false);
+    setAceitouTermoImagem(data.aceitou_termo_imagem || false);
+    setRegistrationStatus(data.registration_status || "");
     setFunilOrigem(data.funil_origem || "");
     setCloserVendeuId(data.closer_vendeu_id || "");
     setMentoradoConvidou(data.mentorado_convidou || "");
@@ -204,16 +264,45 @@ export default function ParticipantDetail() {
 
   const handleSave = async () => {
     if (!participant) return;
+
+    // Validação do nome
+    if (!fullName.trim() || fullName.trim().length < 2) {
+      toast({ variant: "destructive", title: "Nome obrigatório", description: "O nome deve ter pelo menos 2 caracteres." });
+      return;
+    }
+
     setIsSaving(true);
 
+    // Determinar cor automática se faturamento mudou
+    const selectedFaturamento = faturamentoOptions.find(f => f.value === faturamento);
+    const autoColor = selectedFaturamento?.cor || cor || null;
+
     const updateData: Record<string, unknown> = {
+      full_name: fullName.trim(),
+      nome_cracha: nomeCracha || null,
+      cpf_cnpj: cpfCnpj || null,
+      event_name: eventName || null,
+      email: email || null,
+      phone: phone || null,
+      instagram: instagram ? instagram.replace("@", "").trim() : null,
+      nicho: nicho || null,
+      faturamento: faturamento || null,
+      cor: autoColor,
+      lucro_liquido: lucroLiquido || null,
+      tem_socio: temSocio,
+      objetivo_evento: objetivoEvento || null,
+      maior_dificuldade: maiorDificuldade || null,
+      credenciou_dia1: credenciouDia1,
+      credenciou_dia2: credenciouDia2,
+      credenciou_dia3: credenciouDia3,
+      aceitou_termo_imagem: aceitouTermoImagem,
+      registration_status: registrationStatus || null,
       funil_origem: funilOrigem || null,
       closer_vendeu_id: closerVendeuId || null,
       mentorado_convidou: mentoradoConvidou || null,
       acompanhante: acompanhante || null,
       is_oportunidade: isOportunidade,
       vezes_chamado: vezesChamado,
-      cor: cor || null,
     };
 
     if (isAdmin && qualificacao) {
@@ -339,16 +428,6 @@ export default function ParticipantDetail() {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
   };
 
-  const formatFaturamento = (value: string | null) => {
-    if (!value) return "-";
-    if (typeof value === "string" && value.includes("R$")) return value;
-    const num = parseFloat(value);
-    if (!isNaN(num)) {
-      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(num);
-    }
-    return value;
-  };
-
   const assignedCloserName = closers.find(c => c.id === assignedCloser)?.full_name;
 
   if (isLoading) {
@@ -389,14 +468,14 @@ export default function ParticipantDetail() {
       <div className="flex items-center gap-4">
         <Avatar className="h-20 w-20">
           <AvatarImage src={participant.photo_url || undefined} />
-          <AvatarFallback className="text-xl">{getInitials(participant.full_name)}</AvatarFallback>
+          <AvatarFallback className="text-xl">{getInitials(fullName || participant.full_name)}</AvatarFallback>
         </Avatar>
         <div>
-          <h1 className="text-2xl font-bold">{participant.full_name}</h1>
+          <h1 className="text-2xl font-bold">{fullName || participant.full_name}</h1>
           <div className="flex items-center gap-2 mt-1">
-            {participant.credenciou_dia1 && <Badge variant="outline">Dia 1</Badge>}
-            {participant.credenciou_dia2 && <Badge variant="outline">Dia 2</Badge>}
-            {participant.credenciou_dia3 && <Badge variant="outline">Dia 3</Badge>}
+            {credenciouDia1 && <Badge variant="outline">Dia 1</Badge>}
+            {credenciouDia2 && <Badge variant="outline">Dia 2</Badge>}
+            {credenciouDia3 && <Badge variant="outline">Dia 3</Badge>}
           </div>
         </div>
       </div>
@@ -410,118 +489,6 @@ export default function ParticipantDetail() {
         </TabsList>
 
         <TabsContent value="dados" className="space-y-6 mt-6">
-          {/* Contact Info */}
-          <Card>
-            <CardHeader className="py-3 px-4">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Informações de Contato</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 pt-0">
-              <div className="flex flex-wrap gap-4">
-                {participant.email && (
-                  <a href={`mailto:${participant.email}`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
-                    <Mail className="h-4 w-4" /> {participant.email}
-                  </a>
-                )}
-                {participant.phone && (
-                  <a href={`tel:${participant.phone}`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
-                    <Phone className="h-4 w-4" /> {participant.phone}
-                  </a>
-                )}
-                {participant.instagram && (
-                  <a
-                    href={(() => {
-                      const clean = participant.instagram.replace("@", "").trim();
-                      if (clean.startsWith("http")) return clean;
-                      return `https://www.instagram.com/${clean}`;
-                    })()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary"
-                  >
-                    <Instagram className="h-4 w-4" /> {participant.instagram}
-                  </a>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Form Data (Read-only) */}
-          <Card className="border-primary/20">
-            <CardHeader className="py-3 px-4">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Dados do Formulário</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 pt-0 space-y-4">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">CPF/CNPJ</p>
-                  <p className="font-medium">{participant.cpf_cnpj || "-"}</p>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Nome p/ Crachá</p>
-                  <p className="font-medium">{participant.nome_cracha || "-"}</p>
-                </div>
-              </div>
-
-              {participant.event_name && (
-                <div className="bg-muted/50 rounded-lg p-3 text-sm">
-                  <p className="text-xs text-muted-foreground">Evento</p>
-                  <p className="font-medium">{participant.event_name}</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Status</p>
-                  <Badge variant="outline" className="mt-1">
-                    {participant.registration_status || "N/A"}
-                  </Badge>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Tem Sócio?</p>
-                  <Badge variant={participant.tem_socio ? "default" : "secondary"} className="mt-1">
-                    {participant.tem_socio ? "Sim" : "Não"}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Faturamento</p>
-                  <p className="font-medium">{formatFaturamento(participant.faturamento)}</p>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Lucro Líquido</p>
-                  <p className="font-medium">{participant.lucro_liquido || "-"}</p>
-                </div>
-              </div>
-
-              <div className="bg-muted/50 rounded-lg p-3 text-sm">
-                <p className="text-xs text-muted-foreground">Nicho</p>
-                <p className="font-medium">{participant.nicho || "-"}</p>
-              </div>
-
-              {participant.objetivo_evento && (
-                <div className="bg-muted/50 rounded-lg p-3 text-sm">
-                  <p className="text-xs text-muted-foreground mb-1">Objetivo no Evento</p>
-                  <p className="text-sm whitespace-pre-wrap">{participant.objetivo_evento}</p>
-                </div>
-              )}
-
-              {participant.maior_dificuldade && (
-                <div className="bg-muted/50 rounded-lg p-3 text-sm">
-                  <p className="text-xs text-muted-foreground mb-1">Maior Dificuldade</p>
-                  <p className="text-sm whitespace-pre-wrap">{participant.maior_dificuldade}</p>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 text-sm">
-                <Badge variant={participant.aceitou_termo_imagem ? "default" : "secondary"}>
-                  {participant.aceitou_termo_imagem ? "✓ Aceitou termo de imagem" : "Não aceitou termo de imagem"}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Assigned Closer */}
           {assignedCloserName && (
             <div className="bg-primary/10 rounded-lg p-3">
@@ -530,40 +497,147 @@ export default function ParticipantDetail() {
             </div>
           )}
 
-          {/* Manual Info (Editable) */}
+          {/* Dados Básicos */}
           <Card>
             <CardHeader className="py-3 px-4">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Informações Manuais</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Dados Básicos</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-0 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nome Completo *</Label>
+                  <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nome completo" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nome p/ Crachá</Label>
+                  <Input value={nomeCracha} onChange={(e) => setNomeCracha(e.target.value)} placeholder="Nome para crachá" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>CPF/CNPJ</Label>
+                  <Input value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} placeholder="CPF ou CNPJ" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Evento</Label>
+                  <Input value={eventName} onChange={(e) => setEventName(e.target.value)} placeholder="Nome do evento" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Contato */}
+          <Card>
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Contato</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-0 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefone</Label>
+                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Instagram</Label>
+                  <Input value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="@usuario" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Dados do Negócio */}
+          <Card>
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Dados do Negócio</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0 space-y-4">
               <div className="space-y-2">
-                <Label>Funil de origem</Label>
-                <Input value={funilOrigem} onChange={(e) => setFunilOrigem(e.target.value)} placeholder="Ex: Lançamento, Orgânico..." />
+                <Label>Nicho</Label>
+                <Input value={nicho} onChange={(e) => setNicho(e.target.value)} placeholder="Ex: E-commerce, Coaching..." />
               </div>
-
-              <div className="space-y-2">
-                <Label>Closer que vendeu/convidou</Label>
-                <Select value={closerVendeuId || "__none__"} onValueChange={(v) => setCloserVendeuId(v === "__none__" ? "" : v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Nenhum</SelectItem>
-                    {closers.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Faturamento</Label>
+                  <Select value={faturamento || "__none__"} onValueChange={(v) => setFaturamento(v === "__none__" ? "" : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Não informado</SelectItem>
+                      {faturamentoOptions.map(f => (
+                        <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Lucro Líquido</Label>
+                  <Input value={lucroLiquido} onChange={(e) => setLucroLiquido(e.target.value)} placeholder="Lucro líquido mensal" />
+                </div>
               </div>
-
-              <div className="space-y-2">
-                <Label>Mentorado que convidou</Label>
-                <Input value={mentoradoConvidou} onChange={(e) => setMentoradoConvidou(e.target.value)} />
+              <div className="flex items-center justify-between">
+                <Label>Tem Sócio?</Label>
+                <Switch checked={temSocio} onCheckedChange={setTemSocio} />
               </div>
+            </CardContent>
+          </Card>
 
+          {/* Objetivos e Desafios */}
+          <Card>
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Objetivos e Desafios</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-0 space-y-4">
               <div className="space-y-2">
-                <Label>Acompanhante</Label>
-                <Input value={acompanhante} onChange={(e) => setAcompanhante(e.target.value)} />
+                <Label>Objetivo no Evento</Label>
+                <Textarea value={objetivoEvento} onChange={(e) => setObjetivoEvento(e.target.value)} placeholder="O que espera alcançar no evento..." rows={3} />
+              </div>
+              <div className="space-y-2">
+                <Label>Maior Dificuldade</Label>
+                <Textarea value={maiorDificuldade} onChange={(e) => setMaiorDificuldade(e.target.value)} placeholder="Principal desafio atual..." rows={3} />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Informações de Venda */}
+          <Card>
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Informações de Venda</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-0 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Funil de origem</Label>
+                  <Input value={funilOrigem} onChange={(e) => setFunilOrigem(e.target.value)} placeholder="Ex: Lançamento, Orgânico..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Closer que vendeu/convidou</Label>
+                  <Select value={closerVendeuId || "__none__"} onValueChange={(v) => setCloserVendeuId(v === "__none__" ? "" : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Nenhum</SelectItem>
+                      {closers.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Mentorado que convidou</Label>
+                  <Input value={mentoradoConvidou} onChange={(e) => setMentoradoConvidou(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Acompanhante</Label>
+                  <Input value={acompanhante} onChange={(e) => setAcompanhante(e.target.value)} />
+                </div>
               </div>
 
               <div className="flex items-center justify-between">
@@ -619,13 +693,45 @@ export default function ParticipantDetail() {
                   </Select>
                 </div>
               )}
-
-              <Button onClick={handleSave} disabled={isSaving} className="w-full">
-                {isSaving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Salvar alterações
-              </Button>
             </CardContent>
           </Card>
+
+          {/* Credenciamento */}
+          <Card>
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Credenciamento</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-0 space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <Label>Dia 1</Label>
+                  <Switch checked={credenciouDia1} onCheckedChange={setCredenciouDia1} />
+                </div>
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <Label>Dia 2</Label>
+                  <Switch checked={credenciouDia2} onCheckedChange={setCredenciouDia2} />
+                </div>
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <Label>Dia 3</Label>
+                  <Switch checked={credenciouDia3} onCheckedChange={setCredenciouDia3} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label>Aceitou termo de imagem</Label>
+                <Switch checked={aceitouTermoImagem} onCheckedChange={setAceitouTermoImagem} />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Input value={registrationStatus} onChange={(e) => setRegistrationStatus(e.target.value)} placeholder="Status de registro" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Botão Salvar */}
+          <Button onClick={handleSave} disabled={isSaving} className="w-full" size="lg">
+            {isSaving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+            Salvar Alterações
+          </Button>
         </TabsContent>
 
         <TabsContent value="vendas" className="mt-6">
