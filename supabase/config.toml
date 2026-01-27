@@ -1,1 +1,16 @@
 project_id = "ngbwkzbttqvphijmljqz"
+
+[functions.create-user]
+verify_jwt = false
+
+[functions.delete-user]
+verify_jwt = false
+
+[functions.disc-form]
+verify_jwt = false
+
+[functions.webhook-credenciamento]
+verify_jwt = false
+
+[functions.webhook-participants]
+verify_jwt = false

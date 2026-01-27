@@ -14,6 +14,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -67,6 +77,8 @@ export default function AdminPanel() {
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<UserWithRole | null>(null);
 
   // User form state
   const [formEmail, setFormEmail] = useState("");
@@ -175,6 +187,36 @@ export default function AdminPanel() {
     setFormEmail(user.email);
     setFormRole(user.role || "closer");
     setIsDialogOpen(true);
+  };
+
+  const openDeleteDialog = (user: UserWithRole) => {
+    setDeletingUser(user);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return;
+    setIsSubmitting(true);
+
+    const { data, error } = await supabase.functions.invoke("delete-user", {
+      body: { userId: deletingUser.user_id },
+    });
+
+    setIsSubmitting(false);
+    setIsDeleteDialogOpen(false);
+    setDeletingUser(null);
+
+    if (error || data?.error) {
+      toast({ 
+        variant: "destructive", 
+        title: "Erro ao excluir usuário", 
+        description: error?.message || data?.error 
+      });
+      return;
+    }
+
+    toast({ title: "Usuário excluído", description: `${deletingUser.full_name} foi removido do sistema.` });
+    fetchUsers();
   };
 
   // Product handlers
@@ -340,6 +382,14 @@ export default function AdminPanel() {
                             )}
                             <Button variant="ghost" size="icon" onClick={() => openEditDialog(user)} disabled={user.user_id === profile?.user_id}>
                               <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => openDeleteDialog(user)} 
+                              disabled={user.user_id === profile?.user_id}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
                         </TableCell>
@@ -514,6 +564,30 @@ export default function AdminPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>{deletingUser?.full_name}</strong>? 
+              Esta ação não pode ser desfeita e o usuário perderá acesso ao sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteUser} 
+              disabled={isSubmitting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
