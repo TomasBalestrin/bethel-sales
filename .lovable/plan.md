@@ -1,58 +1,44 @@
 
-# Plano de Correção: Edge Function `create-user`
+Objetivo
+- Corrigir o erro “Failed to send a request to the Edge Function” ao criar usuário (closer) no /admin, garantindo que o backend receba a requisição e responda corretamente.
 
-## Problema Identificado
+Diagnóstico (o que está acontecendo)
+- O backend “create-user” está funcionando: ao testar diretamente, ele responde 200 e criou o usuário e a role no banco.
+- Porém, no navegador a chamada está falhando com “Failed to fetch”, o que indica erro de rede/CORS (a requisição nem chega ao backend).
+- A requisição do navegador inclui o header `x-supabase-client-platform` (além de `authorization`, `apikey`, etc.). Hoje o CORS do `create-user` não permite esse header, então o preflight (OPTIONS) pode falhar e o browser bloqueia a chamada.
 
-A Edge Function `create-user` está retornando erro 500 porque está usando uma variável de ambiente que não existe:
+Solução proposta (alto nível)
+- Ajustar o CORS da função `create-user` para:
+  1) Permitir o header `x-supabase-client-platform`
+  2) Incluir explicitamente `Access-Control-Allow-Methods` (boa prática para preflight)
+  3) (Opcional) padronizar o mesmo CORS nas outras funções para evitar erros parecidos no futuro
 
-- **Código atual usa**: `SUPABASE_PUBLISHABLE_KEY` (linha 27)
-- **Nome correto**: `SUPABASE_ANON_KEY`
+Mudanças a implementar (código)
+1) Editar `supabase/functions/create-user/index.ts`
+   - Atualizar `corsHeaders` para algo como:
+     - `Access-Control-Allow-Origin: *`
+     - `Access-Control-Allow-Headers: authorization, x-client-info, apikey, content-type, x-supabase-client-platform`
+     - `Access-Control-Allow-Methods: GET, POST, OPTIONS`
+   - Manter o handler de OPTIONS retornando `new Response(null, { headers: corsHeaders })`
 
-O Lovable Cloud configura automaticamente os seguintes secrets:
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`  
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `SUPABASE_DB_URL`
+2) (Recomendado) Padronizar CORS também em:
+   - `supabase/functions/disc-form/index.ts`
+   - `supabase/functions/webhook-credenciamento/index.ts`
+   - `supabase/functions/webhook-participants/index.ts`
+   Motivo: qualquer chamada via browser pode começar a falhar se o cliente incluir headers adicionais.
 
-Quando a funcao tenta acessar `SUPABASE_PUBLISHABLE_KEY`, ela recebe `undefined` e falha ao criar o cliente Supabase.
+Validação / Testes (para confirmar que resolveu)
+- Teste 1 (UI): no Painel Admin, criar um usuário closer novo e confirmar:
+  - O toast não mostra mais “Failed to send a request…”
+  - O usuário aparece na lista de usuários
+- Teste 2 (rede): inspecionar a chamada no navegador e confirmar que:
+  - O OPTIONS retorna 200/204 com os headers CORS corretos
+  - O POST retorna 200 com `{ success: true }` (ou 400 com mensagem amigável em caso de email já existente)
+- Teste 3 (log): conferir logs do backend e ver “Starting create-user function” + “User created successfully …”
 
-## Solucao
+Riscos e cuidados
+- Segurança: manter a verificação de admin no backend (já existe) e continuar registrando roles apenas na tabela `user_roles` (já está correto).
+- Compatibilidade: permitir apenas os headers necessários (em vez de liberar tudo) para manter CORS restritivo o suficiente.
 
-### Etapa 1: Corrigir a variavel de ambiente
-
-Editar `supabase/functions/create-user/index.ts`:
-
-```typescript
-// Linha 27 - ANTES:
-const supabaseAnonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
-
-// DEPOIS:
-const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-```
-
-### Etapa 2: Adicionar logging para debug
-
-Adicionar mais logs na funcao para facilitar diagnostico de problemas futuros:
-
-```typescript
-console.log("Starting create-user function");
-console.log("User requesting:", currentUser?.email);
-```
-
-### Arquivos a Modificar
-
-| Arquivo | Alteracao |
-|---------|-----------|
-| `supabase/functions/create-user/index.ts` | Corrigir nome da variavel de `SUPABASE_PUBLISHABLE_KEY` para `SUPABASE_ANON_KEY` |
-
----
-
-## Detalhes Tecnicos
-
-A funcao usa dois clientes Supabase:
-1. **userClient**: Com a anon key + token do usuario (para verificar se e admin)
-2. **adminClient**: Com a service role key (para criar usuarios via API admin)
-
-O problema ocorre no userClient porque `SUPABASE_PUBLISHABLE_KEY` retorna `undefined`, causando falha na inicializacao do cliente.
-
-Apos a correcao, a funcao funcionara corretamente pois `SUPABASE_ANON_KEY` esta configurada automaticamente pelo Lovable Cloud.
+Resultado esperado
+- A criação de usuários (admin/closer) pelo Painel Admin funciona de forma consistente no navegador, sem erro de “Failed to fetch”, e o backend recebe as requisições normalmente.
