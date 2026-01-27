@@ -15,7 +15,9 @@ const QUESTIONS_PER_BLOCK = 3;
 const TOTAL_BLOCKS = 4;
 
 export default function DiscFormPage() {
-  const { token } = useParams<{ token: string }>();
+  // Support both new /teste/:code and legacy /disc/:token routes
+  const { code, token } = useParams<{ code?: string; token?: string }>();
+  const formCode = code || token;
   
   // States
   const [currentScreen, setCurrentScreen] = useState<ScreenType>("welcome");
@@ -34,11 +36,11 @@ export default function DiscFormPage() {
 
   useEffect(() => {
     fetchForm();
-  }, [token]);
+  }, [formCode]);
 
   const fetchForm = async () => {
-    if (!token) {
-      setError("Token inválido");
+    if (!formCode) {
+      setError("Código inválido");
       setCurrentScreen("error");
       setIsLoading(false);
       return;
@@ -46,7 +48,7 @@ export default function DiscFormPage() {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/disc-form?token=${token}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/disc-form?code=${formCode}`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },
@@ -141,7 +143,7 @@ export default function DiscFormPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            token,
+            token: formCode,
             responses,
             open_answers: openAnswers,
           }),

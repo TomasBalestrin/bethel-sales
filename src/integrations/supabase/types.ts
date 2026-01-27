@@ -67,6 +67,7 @@ export type Database = {
           form_token: string
           id: string
           participant_id: string
+          short_code: string | null
         }
         Insert: {
           created_at?: string | null
@@ -74,6 +75,7 @@ export type Database = {
           form_token?: string
           id?: string
           participant_id: string
+          short_code?: string | null
         }
         Update: {
           created_at?: string | null
@@ -81,6 +83,7 @@ export type Database = {
           form_token?: string
           id?: string
           participant_id?: string
+          short_code?: string | null
         }
         Relationships: [
           {
@@ -432,6 +435,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_short_code: { Args: never; Returns: string }
       get_current_profile_id: { Args: never; Returns: string }
       has_role: {
         Args: {
