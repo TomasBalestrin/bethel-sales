@@ -33,6 +33,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Instagram, Phone, Mail, Loader2, Copy, Check, ExternalLink } from "lucide-react";
+import { SalesTab } from "./SalesTab";
 import { cn } from "@/lib/utils";
 
 interface Participant {
@@ -334,8 +335,9 @@ export function ParticipantPanel({ participant, onClose, onUpdate, closers, isAd
           </SheetHeader>
 
           <Tabs defaultValue="dados" className="mt-4">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="dados">Dados</TabsTrigger>
+              <TabsTrigger value="vendas">Vendas</TabsTrigger>
               <TabsTrigger value="disc">DISC</TabsTrigger>
               <TabsTrigger value="acoes">Ações</TabsTrigger>
             </TabsList>
@@ -476,6 +478,14 @@ export function ParticipantPanel({ participant, onClose, onUpdate, closers, isAd
                   Salvar alterações
                 </Button>
               </div>
+            </TabsContent>
+
+            <TabsContent value="vendas" className="mt-4">
+              <SalesTab 
+                participantId={participant.id}
+                participantName={participant.full_name}
+                onSaleChange={onUpdate}
+              />
             </TabsContent>
 
             <TabsContent value="disc" className="mt-4 space-y-4">

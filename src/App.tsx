@@ -10,6 +10,8 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Participants from "./pages/Participants";
 import Closers from "./pages/Closers";
+import Sales from "./pages/Sales";
+import Reports from "./pages/Reports";
 import AdminPanel from "./pages/AdminPanel";
 import DiscForm from "./pages/DiscForm";
 import NotFound from "./pages/NotFound";
@@ -30,6 +32,15 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/participantes" element={<Participants />} />
               <Route path="/closers" element={<Closers />} />
+              <Route path="/vendas" element={<Sales />} />
+              <Route
+                path="/relatorios"
+                element={
+                  <AdminRoute>
+                    <Reports />
+                  </AdminRoute>
+                }
+              />
               <Route
                 path="/admin"
                 element={

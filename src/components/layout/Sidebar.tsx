@@ -5,6 +5,8 @@ import {
   LayoutDashboard,
   Users,
   UserCog,
+  DollarSign,
+  BarChart3,
   Settings,
   LogOut,
   ChevronLeft,
@@ -20,6 +22,8 @@ const adminNavItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/participantes", label: "Participantes", icon: Users },
   { href: "/closers", label: "Closers", icon: UserCog },
+  { href: "/vendas", label: "Vendas", icon: DollarSign },
+  { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/admin", label: "Painel Admin", icon: Settings },
 ];
 
@@ -27,6 +31,7 @@ const closerNavItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/participantes", label: "Participantes", icon: Users },
   { href: "/closers", label: "Closers", icon: UserCog },
+  { href: "/vendas", label: "Vendas", icon: DollarSign },
 ];
 
 export function Sidebar() {
