@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -14,8 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Users, Filter, Instagram, Loader2, X } from "lucide-react";
+import { Search, Users, Filter, Instagram, Loader2, X, Download } from "lucide-react";
 import { ParticipantPanel } from "@/components/participants/ParticipantPanel";
+import { BulkAssignBar } from "@/components/participants/BulkAssignBar";
+import { exportToCSV, participantExportColumns } from "@/lib/export";
 import { cn } from "@/lib/utils";
 
 interface Participant {
@@ -56,6 +59,7 @@ export default function Participants() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   
   // Filters
   const [filterFunil, setFilterFunil] = useState<string>("all");
@@ -169,13 +173,35 @@ export default function Participants() {
 
   const hasActiveFilters = filterFunil !== "all" || filterCloser !== "all" || filterOportunidade !== "all" || filterVenda !== "all" || searchTerm;
 
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleExport = () => {
+    exportToCSV(filteredParticipants, participantExportColumns, "participantes");
+    toast({ title: "Exportado!", description: "Arquivo CSV gerado com sucesso." });
+  };
+
+  const handleBulkComplete = () => {
+    setSelectedIds([]);
+    fetchParticipants();
+  };
+
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Participantes</h1>
-        <p className="text-muted-foreground">
-          {filteredParticipants.length} de {participants.length} participantes
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Participantes</h1>
+          <p className="text-muted-foreground">
+            {filteredParticipants.length} de {participants.length} participantes
+          </p>
+        </div>
+        <Button variant="outline" onClick={handleExport}>
+          <Download className="h-4 w-4 mr-2" />
+          Exportar CSV
+        </Button>
       </div>
 
       {/* Search and Filters */}
@@ -274,11 +300,22 @@ export default function Participants() {
           {filteredParticipants.map((participant) => (
             <Card
               key={participant.id}
-              className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/20"
+              className={cn(
+                "cursor-pointer transition-all hover:shadow-lg hover:border-primary/20",
+                selectedIds.includes(participant.id) && "ring-2 ring-primary"
+              )}
               onClick={() => setSelectedParticipant(participant)}
             >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
+                  {isAdmin && (
+                    <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.includes(participant.id)}
+                        onCheckedChange={() => toggleSelection(participant.id)}
+                      />
+                    </div>
+                  )}
                   <div className="relative">
                     <Avatar className="h-12 w-12">
                       <AvatarImage src={participant.photo_url || undefined} />
@@ -343,6 +380,16 @@ export default function Participants() {
         closers={closers}
         isAdmin={isAdmin}
       />
+
+      {/* Bulk Assign Bar */}
+      {isAdmin && (
+        <BulkAssignBar
+          selectedIds={selectedIds}
+          closers={closers}
+          onClear={() => setSelectedIds([])}
+          onComplete={handleBulkComplete}
+        />
+      )}
     </div>
   );
 }
