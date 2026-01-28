@@ -236,15 +236,50 @@ function CollapsibleSection({
   );
 }
 
+// Convert raw absolute scores to percentages
+function scoresToPercentages(scores: { D: number; I: number; S: number; C: number }) {
+  const total = scores.D + scores.I + scores.S + scores.C;
+  if (total === 0) return { D: 0, I: 0, S: 0, C: 0 };
+  return {
+    D: Math.round((scores.D / total) * 100),
+    I: Math.round((scores.I / total) * 100),
+    S: Math.round((scores.S / total) * 100),
+    C: Math.round((scores.C / total) * 100),
+  };
+}
+
+// Calculate raw DISC scores (counts, not percentages) from responses
+function calculateRawDiscScores(responses: Record<string, number>): { D: number; I: number; S: number; C: number } {
+  const scores = { D: 0, I: 0, S: 0, C: 0 };
+
+  for (const [questionId, optionIndex] of Object.entries(responses)) {
+    const qId = parseInt(questionId);
+    if (qId >= 11 && qId <= 20) {
+      const discOptions = DISC_QUESTIONS[qId];
+      if (discOptions && discOptions[optionIndex]) {
+        const discLetter = discOptions[optionIndex] as keyof typeof scores;
+        scores[discLetter]++;
+      }
+    }
+  }
+
+  return scores;
+}
+
 export function DiscProfileDisplay({ discResponse }: DiscProfileDisplayProps) {
   const responses = (discResponse.responses || {}) as Record<string, number>;
   const archetypeScores = calculateArchetypeScores(responses);
   const top3Archetypes = archetypeScores.slice(0, 3);
   
-  // Use stored disc_scores if available, otherwise calculate
-  const discPercentages = discResponse.disc_scores || calculateDiscPercentages(responses);
+  // Get raw scores (absolute counts) - either from database or calculate from responses
+  const rawScores = discResponse.disc_scores 
+    ? discResponse.disc_scores as { D: number; I: number; S: number; C: number }
+    : calculateRawDiscScores(responses);
   
-  // Determine dominant DISC letter
+  // Convert raw scores to percentages for display
+  const discPercentages = scoresToPercentages(rawScores);
+  
+  // Determine dominant DISC letter based on percentages
   const dominantLetter = discResponse.disc_profile?.charAt(0) || 
     Object.entries(discPercentages).sort((a, b) => b[1] - a[1])[0][0];
   
