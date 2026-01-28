@@ -11,8 +11,9 @@ import { ResultScreen } from "@/components/disc-form/ResultScreen";
 import { ErrorScreen } from "@/components/disc-form/ErrorScreen";
 import type { Question, ArchetypeResult, OpenAnswers, ScreenType } from "@/components/disc-form/types";
 
-const QUESTIONS_PER_BLOCK = 3;
-const TOTAL_BLOCKS = 4;
+// Nova estrutura: 6 blocos de perguntas (3+3+4 Arquétipos, 3+3+4 DISC)
+const BLOCK_CONFIG = [3, 3, 4, 3, 3, 4]; // Perguntas por bloco
+const TOTAL_BLOCKS = 6;
 
 export default function DiscFormPage() {
   // Support both new /teste/:code and legacy /disc/:token routes
@@ -91,10 +92,19 @@ export default function DiscFormPage() {
     setOpenAnswers((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Calcular índice de início para o bloco atual
+  const getBlockStartIndex = (block: number): number => {
+    let start = 0;
+    for (let i = 0; i < block - 1; i++) {
+      start += BLOCK_CONFIG[i];
+    }
+    return start;
+  };
+
   const getCurrentBlockQuestions = (): Question[] => {
-    const start = (currentBlock - 1) * QUESTIONS_PER_BLOCK;
-    const end = start + QUESTIONS_PER_BLOCK;
-    return questions.slice(start, end);
+    const start = getBlockStartIndex(currentBlock);
+    const count = BLOCK_CONFIG[currentBlock - 1];
+    return questions.slice(start, start + count);
   };
 
   const isBlockComplete = (): boolean => {
@@ -167,6 +177,13 @@ export default function DiscFormPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Calcular progresso total (20 perguntas + perguntas abertas)
+  const getTotalProgress = (): number => {
+    const answeredQuestions = Object.keys(responses).length;
+    const totalQuestions = questions.length;
+    return totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
   };
 
   // Initial loading
