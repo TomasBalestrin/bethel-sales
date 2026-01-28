@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import bethelLogo from "@/assets/bethel-logo.png";
 
 interface WelcomeScreenProps {
   participantName: string;
@@ -12,13 +13,11 @@ export function WelcomeScreen({ participantName, onStart }: WelcomeScreenProps) 
         {/* Logo Bethel */}
         <div className="mb-10">
           <div className="flex items-center justify-center gap-3 mb-2">
-            {/* Icone estilizado */}
-            <svg className="w-14 h-14 text-white" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="8" y="8" width="48" height="48" rx="8" stroke="currentColor" strokeWidth="3"/>
-              <path d="M20 20h8v24h-8V20z" fill="currentColor"/>
-              <path d="M32 20h12c4 0 8 4 8 8s-4 8-8 8H32V20z" fill="currentColor"/>
-              <circle cx="44" cy="36" r="6" fill="currentColor"/>
-            </svg>
+            <img 
+              src={bethelLogo} 
+              alt="Bethel Educação" 
+              className="w-14 h-14 object-contain"
+            />
             <div className="text-left">
               <span className="text-3xl font-bold text-white">Bethel</span>
               <span className="block text-sm text-gray-300">Educação</span>
