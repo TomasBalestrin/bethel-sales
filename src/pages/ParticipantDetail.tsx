@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Copy, Check, ExternalLink, ArrowLeft, Trash2 } from "lucide-react";
+import { Loader2, Copy, Check, ExternalLink, ArrowLeft, Trash2, RefreshCcw } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -117,6 +117,7 @@ export default function ParticipantDetail() {
   const [discResponse, setDiscResponse] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [assignedCloser, setAssignedCloser] = useState<string | null>(null);
+  const [isReprocessing, setIsReprocessing] = useState(false);
 
   // ============ EDITABLE FORM STATES ============
   // Dados Básicos
@@ -793,7 +794,48 @@ export default function ParticipantDetail() {
               </CardContent>
             </Card>
           ) : (
-            <DiscProfileDisplay discResponse={discResponse} />
+            <>
+              {/* Reprocess button if AI analysis is empty */}
+              {!discResponse.sales_insights && (
+                <Card className="border-amber-300 bg-amber-50">
+                  <CardContent className="py-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-amber-800">Análise de IA não disponível</p>
+                      <p className="text-sm text-amber-700">Clique para gerar insights de vendas, objeções e dicas de abordagem.</p>
+                    </div>
+                    <Button 
+                      onClick={async () => {
+                        setIsReprocessing(true);
+                        const { error } = await supabase.functions.invoke("disc-form", {
+                          body: { 
+                            action: "reprocess",
+                            participant_id: participant.id
+                          }
+                        });
+                        if (error) {
+                          toast({ variant: "destructive", title: "Erro", description: "Falha ao reprocessar análise." });
+                        } else {
+                          toast({ title: "Análise reprocessada!", description: "Os insights de IA foram gerados." });
+                          fetchDiscData(participant.id);
+                        }
+                        setIsReprocessing(false);
+                      }}
+                      disabled={isReprocessing}
+                      variant="outline"
+                      className="border-amber-400 bg-white hover:bg-amber-100"
+                    >
+                      {isReprocessing ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <RefreshCcw className="h-4 w-4 mr-2" />
+                      )}
+                      Reprocessar Análise IA
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+              <DiscProfileDisplay discResponse={discResponse} />
+            </>
           )}
         </TabsContent>
 

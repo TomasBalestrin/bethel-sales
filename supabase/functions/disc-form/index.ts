@@ -493,9 +493,213 @@ serve(async (req) => {
       );
     }
 
-    // POST submit responses
+    // POST submit responses OR reprocess
     if (req.method === "POST") {
-      const { token, responses, open_answers } = await req.json();
+      const body = await req.json();
+      
+      // Handle reprocess action
+      if (body.action === "reprocess") {
+        const { participant_id } = body;
+        
+        if (!participant_id) {
+          return new Response(
+            JSON.stringify({ error: "participant_id é obrigatório" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        console.log("Reprocessing analysis for participant:", participant_id);
+        
+        // Get participant with disc_form and disc_response
+        const { data: participant, error: partError } = await supabase
+          .from("participants")
+          .select("*")
+          .eq("id", participant_id)
+          .single();
+        
+        if (partError || !participant) {
+          return new Response(
+            JSON.stringify({ error: "Participante não encontrado" }),
+            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        // Get disc_form
+        const { data: discForm, error: formError } = await supabase
+          .from("disc_forms")
+          .select("id")
+          .eq("participant_id", participant_id)
+          .single();
+        
+        if (formError || !discForm) {
+          return new Response(
+            JSON.stringify({ error: "Formulário DISC não encontrado" }),
+            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        // Get disc_response
+        const { data: discResponse, error: respError } = await supabase
+          .from("disc_responses")
+          .select("*")
+          .eq("form_id", discForm.id)
+          .single();
+        
+        if (respError || !discResponse) {
+          return new Response(
+            JSON.stringify({ error: "Resposta DISC não encontrada" }),
+            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        const discScores = discResponse.disc_scores || { D: 0, I: 0, S: 0, C: 0 };
+        const discProfile = discResponse.disc_profile || "D";
+        const primaryArchetype = discResponse.primary_archetype || "Herói";
+        const secondaryArchetype = discResponse.secondary_archetype || "Sábio";
+        const open_answers = discResponse.open_answers;
+        
+        // Call AI for DISC analysis
+        const aiPrompt = `Você é um especialista em perfil comportamental DISC, arquétipos e vendas consultivas.
+
+O participante "${participant.full_name}" respondeu um formulário completo de autoconhecimento.
+
+=== PERFIL DISC (das 10 perguntas situacionais) ===
+Perfil predominante: ${discProfile}
+Pontuação detalhada:
+- Dominância (D): ${discScores.D}/10 (${discScores.D * 10}%)
+- Influência (I): ${discScores.I}/10 (${discScores.I * 10}%)
+- Estabilidade (S): ${discScores.S}/10 (${discScores.S * 10}%)
+- Conformidade (C): ${discScores.C}/10 (${discScores.C * 10}%)
+
+=== ARQUÉTIPOS IDENTIFICADOS ===
+- Arquétipo principal: ${primaryArchetype}
+- Arquétipo secundário: ${secondaryArchetype}
+
+=== DADOS DO PARTICIPANTE ===
+- Faturamento: ${participant.faturamento || "Não informado"}
+- Lucro líquido: ${participant.lucro_liquido || "Não informado"}
+- Nicho de atuação: ${participant.nicho || "Não informado"}
+- Objetivo no evento: ${participant.objetivo_evento || "Não informado"}
+- Maior dificuldade atual: ${participant.maior_dificuldade || "Não informado"}
+
+=== RESPOSTAS ABERTAS DO FORMULÁRIO ===
+- Maior desafio declarado: ${open_answers?.biggest_challenge || "Não informado"}
+- Mudança mais desejada: ${open_answers?.desired_change || "Não informado"}
+
+Com base em TODOS esses dados, forneça uma análise profunda e personalizada em formato JSON:
+
+{
+  "disc_description": "Descrição comportamental detalhada combinando o perfil DISC com os arquétipos. Explique como essa pessoa pensa, decide e se comporta em situações de compra. 2-3 parágrafos bem elaborados.",
+  
+  "disc_label": "Um rótulo descritivo do perfil combinado (ex: 'Líder Visionário', 'Comunicador Estratégico', 'Analítico Cuidadoso', 'Executor Determinado')",
+  
+  "approach_tip": "Uma dica específica e prática de como abordar esta pessoa na venda. Seja direto e acionável (1-2 frases).",
+  
+  "alerts": ["Alerta 1 sobre o que evitar", "Alerta 2 sobre comportamento", "Alerta 3 sobre armadilhas comuns"],
+  
+  "sales_insights": "Insights específicos para vender para esta pessoa, considerando seu perfil DISC, arquétipos, nicho e desafios declarados. Liste 4-5 pontos estratégicos formatados com bullet points.",
+  
+  "objecoes": "Principais objeções de compra previstas para ESTE perfil específico, considerando os desafios que declarou. Liste 4-5 objeções prováveis.",
+  
+  "contorno_objecoes": "Como contornar cada objeção listada, com scripts específicos para o perfil DISC desta pessoa. Seja prático e direto.",
+  
+  "exemplos_fechamento": "3-4 exemplos de frases/abordagens de fechamento personalizadas para este perfil. Inclua gatilhos mentais adequados ao perfil."
+}
+
+IMPORTANTE: 
+- Personalize TUDO com base nos dados fornecidos
+- Use o nicho e desafios declarados para tornar a análise relevante
+- Considere a combinação DISC + Arquétipo para insights únicos
+- Responda APENAS com o JSON, sem texto adicional`;
+
+        let aiAnalysis = {
+          disc_description: "",
+          sales_insights: "",
+          objecoes: "",
+          contorno_objecoes: "",
+          exemplos_fechamento: "",
+          approach_tip: "",
+          alerts: [] as string[],
+          disc_label: "",
+        };
+
+        try {
+          console.log("Calling AI for reprocessing...");
+          const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${lovableApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-3-flash-preview",
+              messages: [
+                { role: "system", content: "Você é um especialista em DISC e vendas. Responda sempre em português brasileiro." },
+                { role: "user", content: aiPrompt }
+              ],
+            }),
+          });
+
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            const content = aiData.choices?.[0]?.message?.content || "";
+            console.log("AI response received, parsing...");
+            
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              aiAnalysis = {
+                disc_description: parsed.disc_description || "",
+                sales_insights: typeof parsed.sales_insights === "string" ? parsed.sales_insights : JSON.stringify(parsed.sales_insights),
+                objecoes: typeof parsed.objecoes === "string" ? parsed.objecoes : JSON.stringify(parsed.objecoes),
+                contorno_objecoes: typeof parsed.contorno_objecoes === "string" ? parsed.contorno_objecoes : JSON.stringify(parsed.contorno_objecoes),
+                exemplos_fechamento: typeof parsed.exemplos_fechamento === "string" ? parsed.exemplos_fechamento : JSON.stringify(parsed.exemplos_fechamento),
+                approach_tip: parsed.approach_tip || "",
+                alerts: Array.isArray(parsed.alerts) ? parsed.alerts : [],
+                disc_label: parsed.disc_label || "",
+              };
+              console.log("AI analysis parsed successfully");
+            }
+          } else {
+            console.error("AI response not ok:", await aiResponse.text());
+          }
+        } catch (aiError) {
+          console.error("AI analysis error:", aiError);
+        }
+
+        // Update disc_response with new AI analysis
+        const { error: updateError } = await supabase
+          .from("disc_responses")
+          .update({
+            disc_description: aiAnalysis.disc_description,
+            sales_insights: aiAnalysis.sales_insights,
+            objecoes: aiAnalysis.objecoes,
+            contorno_objecoes: aiAnalysis.contorno_objecoes,
+            exemplos_fechamento: aiAnalysis.exemplos_fechamento,
+            approach_tip: aiAnalysis.approach_tip,
+            alerts: aiAnalysis.alerts,
+            disc_label: aiAnalysis.disc_label,
+            analyzed_at: new Date().toISOString(),
+          })
+          .eq("id", discResponse.id);
+
+        if (updateError) {
+          console.error("Update error:", updateError);
+          return new Response(
+            JSON.stringify({ error: "Erro ao atualizar análise" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        console.log("Reprocessing completed successfully");
+        return new Response(
+          JSON.stringify({ success: true, message: "Análise reprocessada com sucesso" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Original form submission logic
+      const { token, responses, open_answers } = body;
       const code = token; // Can be either short_code or form_token
 
       console.log("Received submission:", { code, responses: Object.keys(responses || {}).length, open_answers });
