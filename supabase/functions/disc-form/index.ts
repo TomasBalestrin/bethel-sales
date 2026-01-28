@@ -8,137 +8,246 @@ const corsHeaders = {
 };
 
 // ==========================================
-// PERGUNTAS SITUACIONAIS COM MAPEAMENTO DUPLO
+// PARTE 1: PERGUNTAS DE ARQUÉTIPO (10 perguntas × 6 opções)
 // ==========================================
 const ARCHETYPE_QUESTIONS = [
   {
     id: 1,
-    text: "É sábado à noite. O que você prefere fazer?",
+    text: "O que mais te motiva na vida?",
     options: [
-      { text: "Organizar um jantar na minha casa e receber os amigos", disc: "I", archetype: "Cuidador" },
-      { text: "Ir a um lugar novo que nunca explorei", disc: "D", archetype: "Explorador" },
-      { text: "Maratonar uma série ou ler um bom livro", disc: "S", archetype: "Sábio" },
-      { text: "Sair para uma festa ou evento animado", disc: "I", archetype: "Bobo da Corte" }
+      { text: "Acreditar que o mundo pode ser melhor", archetype: "Inocente" },
+      { text: "Superar desafios e provar meu valor", archetype: "Herói" },
+      { text: "Descobrir verdades e entender as coisas", archetype: "Sábio" },
+      { text: "Viver experiências novas e únicas", archetype: "Explorador" },
+      { text: "Transformar sonhos em realidade", archetype: "Mago" },
+      { text: "Cuidar e proteger quem amo", archetype: "Cuidador" }
     ]
   },
   {
     id: 2,
-    text: "Você ganhou R$50 mil inesperados. Qual seu primeiro pensamento?",
+    text: "Em um grupo, você naturalmente:",
     options: [
-      { text: "Vou investir e fazer esse dinheiro crescer", disc: "C", archetype: "Governante" },
-      { text: "Vou realizar aquele sonho que sempre adiei", disc: "D", archetype: "Herói" },
-      { text: "Vou ajudar pessoas que precisam", disc: "S", archetype: "Cuidador" },
-      { text: "Vou viajar e viver experiências incríveis", disc: "I", archetype: "Explorador" }
+      { text: "Lidera e organiza", archetype: "Governante" },
+      { text: "Conecta as pessoas e cria harmonia", archetype: "Amante" },
+      { text: "Questiona regras e propõe mudanças", archetype: "Rebelde" },
+      { text: "Traz humor e leveza", archetype: "Bobo da Corte" },
+      { text: "Se adapta e busca pertencer", archetype: "Cara Comum" },
+      { text: "Cria soluções originais", archetype: "Criador" }
     ]
   },
   {
     id: 3,
-    text: "Em um grupo de amigos, você geralmente é...",
+    text: "O que as pessoas mais admiram em você?",
     options: [
-      { text: "Quem faz todo mundo rir", disc: "I", archetype: "Bobo da Corte" },
-      { text: "Quem as pessoas procuram para desabafar", disc: "S", archetype: "Cuidador" },
-      { text: "Quem tem as ideias mais criativas", disc: "D", archetype: "Criador" },
-      { text: "Quem pesquisa e traz informações úteis", disc: "C", archetype: "Sábio" }
+      { text: "Minha coragem e determinação", archetype: "Herói" },
+      { text: "Minha capacidade de transformar situações", archetype: "Mago" },
+      { text: "Meu carinho e atenção", archetype: "Cuidador" },
+      { text: "Minha autenticidade e originalidade", archetype: "Criador" },
+      { text: "Minha sabedoria e profundidade", archetype: "Sábio" },
+      { text: "Minha capacidade de liderar", archetype: "Governante" }
     ]
   },
   {
     id: 4,
-    text: "O que mais te incomoda nas pessoas?",
+    text: "Qual seu maior medo?",
     options: [
-      { text: "Quando são falsas ou desonestas", disc: "C", archetype: "Sábio" },
-      { text: "Quando são negativas e reclamam de tudo", disc: "I", archetype: "Inocente" },
-      { text: "Quando são lentas e enrolam demais", disc: "D", archetype: "Herói" },
-      { text: "Quando são frias e não se importam com os outros", disc: "S", archetype: "Amante" }
+      { text: "Ser rejeitado ou excluído", archetype: "Cara Comum" },
+      { text: "Viver uma vida sem graça ou monótona", archetype: "Explorador" },
+      { text: "Não conseguir ajudar quem precisa", archetype: "Cuidador" },
+      { text: "Ser controlado ou perder liberdade", archetype: "Rebelde" },
+      { text: "Ficar sozinho ou sem conexões", archetype: "Amante" },
+      { text: "Ser enganado ou decepcionado", archetype: "Inocente" }
     ]
   },
   {
     id: 5,
-    text: "Se você fosse um personagem de filme, seria...",
+    text: "Como você lida com problemas?",
     options: [
-      { text: "O mentor sábio que guia o herói", disc: "C", archetype: "Sábio" },
-      { text: "O herói corajoso que salva o dia", disc: "D", archetype: "Herói" },
-      { text: "O artista incompreendido com visão única", disc: "D", archetype: "Criador" },
-      { text: "O amigo leal que está sempre presente", disc: "S", archetype: "Cara Comum" }
+      { text: "Enfrento de frente com coragem", archetype: "Herói" },
+      { text: "Analiso antes de agir", archetype: "Sábio" },
+      { text: "Busco uma solução criativa diferente", archetype: "Criador" },
+      { text: "Uso humor para aliviar a tensão", archetype: "Bobo da Corte" },
+      { text: "Organizo um plano e executo", archetype: "Governante" },
+      { text: "Confio que vai dar certo no final", archetype: "Inocente" }
     ]
   },
   {
     id: 6,
-    text: "Quando você quer algo, você...",
+    text: "O que você busca nos relacionamentos?",
     options: [
-      { text: "Vai atrás até conseguir, custe o que custar", disc: "D", archetype: "Herói" },
-      { text: "Planeja com calma cada passo", disc: "C", archetype: "Governante" },
-      { text: "Espera o momento certo aparecer", disc: "S", archetype: "Inocente" },
-      { text: "Conversa com pessoas para conseguir apoio", disc: "I", archetype: "Amante" }
+      { text: "Paixão e conexão profunda", archetype: "Amante" },
+      { text: "Lealdade e confiança", archetype: "Cara Comum" },
+      { text: "Aventura e novas experiências juntos", archetype: "Explorador" },
+      { text: "Parceria para mudar o mundo", archetype: "Rebelde" },
+      { text: "Alguém que me apoie e eu possa apoiar", archetype: "Cuidador" },
+      { text: "Crescimento e transformação mútua", archetype: "Mago" }
     ]
   },
   {
     id: 7,
-    text: "O que te dá mais satisfação?",
+    text: "Qual sua maior força?",
     options: [
-      { text: "Criar algo do zero e ver funcionando", disc: "D", archetype: "Criador" },
-      { text: "Ajudar alguém a superar um problema", disc: "S", archetype: "Cuidador" },
-      { text: "Aprender algo novo e profundo", disc: "C", archetype: "Sábio" },
-      { text: "Viver momentos intensos e memoráveis", disc: "I", archetype: "Explorador" }
+      { text: "Determinação para vencer obstáculos", archetype: "Herói" },
+      { text: "Capacidade de fazer as pessoas rirem", archetype: "Bobo da Corte" },
+      { text: "Visão para criar coisas únicas", archetype: "Criador" },
+      { text: "Habilidade de liderar e inspirar", archetype: "Governante" },
+      { text: "Conhecimento e análise profunda", archetype: "Sábio" },
+      { text: "Poder de transformar realidades", archetype: "Mago" }
     ]
   },
   {
     id: 8,
-    text: "Como você lida quando algo dá errado?",
+    text: "O que te faz sentir realizado?",
     options: [
-      { text: "Fico bravo mas logo busco a solução", disc: "D", archetype: null },
-      { text: "Analiso o que aconteceu para não repetir", disc: "C", archetype: null },
-      { text: "Fico chateado mas aceito e sigo em frente", disc: "S", archetype: null },
-      { text: "Desabafo com alguém e me recomponho", disc: "I", archetype: null }
+      { text: "Ajudar alguém a superar dificuldades", archetype: "Cuidador" },
+      { text: "Descobrir algo novo sobre o mundo", archetype: "Explorador" },
+      { text: "Criar momentos especiais com pessoas amadas", archetype: "Amante" },
+      { text: "Desafiar o sistema e causar mudanças", archetype: "Rebelde" },
+      { text: "Ser parte de uma comunidade unida", archetype: "Cara Comum" },
+      { text: "Ver o mundo com esperança e otimismo", archetype: "Inocente" }
     ]
   },
   {
     id: 9,
-    text: "O que as pessoas mais admiram em você?",
+    text: "Qual frase mais combina com você?",
     options: [
-      { text: "Minha energia e entusiasmo", disc: "I", archetype: "Bobo da Corte" },
-      { text: "Minha determinação e força", disc: "D", archetype: "Herói" },
-      { text: "Minha calma e paciência", disc: "S", archetype: "Cuidador" },
-      { text: "Minha inteligência e conhecimento", disc: "C", archetype: "Sábio" }
+      { text: "A vida é uma aventura a ser vivida", archetype: "Explorador" },
+      { text: "O riso é o melhor remédio", archetype: "Bobo da Corte" },
+      { text: "Juntos somos mais fortes", archetype: "Cara Comum" },
+      { text: "Regras foram feitas para serem quebradas", archetype: "Rebelde" },
+      { text: "O amor move o mundo", archetype: "Amante" },
+      { text: "Tudo é possível se você acreditar", archetype: "Mago" }
     ]
   },
   {
     id: 10,
-    text: "Se pudesse escolher um superpoder, seria...",
+    text: "Como você quer ser lembrado?",
     options: [
-      { text: "Ler mentes para entender as pessoas", disc: "I", archetype: "Amante" },
-      { text: "Força sobre-humana para proteger quem amo", disc: "D", archetype: "Herói" },
-      { text: "Curar pessoas com o toque", disc: "S", archetype: "Cuidador" },
-      { text: "Conhecimento infinito sobre tudo", disc: "C", archetype: "Sábio" }
+      { text: "Por ter feito grandes conquistas", archetype: "Herói" },
+      { text: "Por ter cuidado bem das pessoas", archetype: "Cuidador" },
+      { text: "Por ter deixado um legado de conhecimento", archetype: "Sábio" },
+      { text: "Por ter criado algo único e original", archetype: "Criador" },
+      { text: "Por ter liderado com sabedoria", archetype: "Governante" },
+      { text: "Por ter mantido a fé e esperança", archetype: "Inocente" }
     ]
-  },
+  }
+];
+
+// ==========================================
+// PARTE 2: PERGUNTAS DISC (10 perguntas × 4 opções)
+// ==========================================
+const DISC_QUESTIONS = [
   {
     id: 11,
-    text: "Em uma discussão, você tende a...",
+    text: "No trabalho, você prefere:",
     options: [
-      { text: "Defender seu ponto com firmeza", disc: "D", archetype: null },
-      { text: "Tentar entender o lado do outro", disc: "S", archetype: null },
-      { text: "Usar argumentos lógicos e dados", disc: "C", archetype: null },
-      { text: "Usar humor para desarmar a tensão", disc: "I", archetype: null }
+      { text: "Tomar decisões rápidas e ver resultados", disc: "D" },
+      { text: "Trabalhar em equipe e manter harmonia", disc: "S" },
+      { text: "Analisar dados antes de agir", disc: "C" },
+      { text: "Motivar pessoas e gerar entusiasmo", disc: "I" }
     ]
   },
   {
     id: 12,
-    text: "O que você mais valoriza na vida?",
+    text: "Quando alguém discorda de você:",
     options: [
-      { text: "Liberdade para fazer o que quiser", disc: "D", archetype: "Rebelde" },
-      { text: "Conexões verdadeiras com pessoas", disc: "I", archetype: "Amante" },
-      { text: "Paz e tranquilidade", disc: "S", archetype: "Inocente" },
-      { text: "Conhecimento e sabedoria", disc: "C", archetype: "Sábio" }
+      { text: "Defendo meu ponto com firmeza", disc: "D" },
+      { text: "Busco entender o lado da pessoa", disc: "S" },
+      { text: "Peço que me mostre os fatos", disc: "C" },
+      { text: "Tento convencer com entusiasmo", disc: "I" }
+    ]
+  },
+  {
+    id: 13,
+    text: "O que mais te incomoda?",
+    options: [
+      { text: "Lentidão e falta de ação", disc: "D" },
+      { text: "Conflitos e ambiente tenso", disc: "S" },
+      { text: "Erros e falta de qualidade", disc: "C" },
+      { text: "Rotina e falta de novidade", disc: "I" }
+    ]
+  },
+  {
+    id: 14,
+    text: "Como você toma decisões importantes?",
+    options: [
+      { text: "Rápido, confiando no instinto", disc: "D" },
+      { text: "Com calma, considerando todos", disc: "S" },
+      { text: "Analisando todas as informações", disc: "C" },
+      { text: "Conversando com pessoas de confiança", disc: "I" }
+    ]
+  },
+  {
+    id: 15,
+    text: "O que te motiva no trabalho?",
+    options: [
+      { text: "Desafios e conquistas", disc: "D" },
+      { text: "Estabilidade e segurança", disc: "S" },
+      { text: "Qualidade e excelência", disc: "C" },
+      { text: "Reconhecimento e interação", disc: "I" }
+    ]
+  },
+  {
+    id: 16,
+    text: "Em uma reunião, você geralmente:",
+    options: [
+      { text: "Vai direto ao ponto", disc: "D" },
+      { text: "Ouve mais do que fala", disc: "S" },
+      { text: "Faz perguntas detalhadas", disc: "C" },
+      { text: "Anima a conversa e conecta pessoas", disc: "I" }
+    ]
+  },
+  {
+    id: 17,
+    text: "Qual seu maior medo profissional?",
+    options: [
+      { text: "Perder o controle da situação", disc: "D" },
+      { text: "Mudanças bruscas e instabilidade", disc: "S" },
+      { text: "Cometer erros ou parecer incompetente", disc: "C" },
+      { text: "Ser ignorado ou rejeitado", disc: "I" }
+    ]
+  },
+  {
+    id: 18,
+    text: "Como você prefere receber feedback?",
+    options: [
+      { text: "Direto e sem rodeios", disc: "D" },
+      { text: "Com cuidado e de forma gentil", disc: "S" },
+      { text: "Com dados e exemplos específicos", disc: "C" },
+      { text: "Com reconhecimento do esforço", disc: "I" }
+    ]
+  },
+  {
+    id: 19,
+    text: "O que mais valoriza em um líder?",
+    options: [
+      { text: "Decisão e resultados", disc: "D" },
+      { text: "Cuidado com a equipe", disc: "S" },
+      { text: "Competência e conhecimento", disc: "C" },
+      { text: "Carisma e motivação", disc: "I" }
+    ]
+  },
+  {
+    id: 20,
+    text: "Sob pressão, você tende a:",
+    options: [
+      { text: "Assumir o controle e agir", disc: "D" },
+      { text: "Manter a calma e apoiar os outros", disc: "S" },
+      { text: "Analisar opções com cuidado", disc: "C" },
+      { text: "Buscar ajuda e motivar o time", disc: "I" }
     ]
   }
 ];
+
+// Combinar todas as perguntas para o frontend
+const ALL_QUESTIONS = [...ARCHETYPE_QUESTIONS, ...DISC_QUESTIONS];
 
 // ==========================================
 // DESCRIÇÕES DOS 12 ARQUÉTIPOS
 // ==========================================
 const ARCHETYPE_DATA: Record<string, { emoji: string; description: string }> = {
   "Inocente": {
-    emoji: "✨",
+    emoji: "🌟",
     description: "Você enxerga o mundo com otimismo e acredita genuinamente no bem. Sua pureza de intenções inspira as pessoas ao seu redor."
   },
   "Cara Comum": {
@@ -146,11 +255,11 @@ const ARCHETYPE_DATA: Record<string, { emoji: string; description: string }> = {
     description: "Você valoriza conexões autênticas e pertencimento. As pessoas se sentem à vontade com você porque é genuíno e acessível."
   },
   "Herói": {
-    emoji: "🏆",
+    emoji: "⚔️",
     description: "Você tem coragem para enfrentar desafios e determinação para vencer. Não desiste fácil e inspira outros com sua força."
   },
   "Cuidador": {
-    emoji: "❤️",
+    emoji: "💝",
     description: "Você tem um coração generoso e se realiza ajudando os outros. Sua empatia e cuidado fazem diferença na vida das pessoas."
   },
   "Explorador": {
@@ -158,11 +267,11 @@ const ARCHETYPE_DATA: Record<string, { emoji: string; description: string }> = {
     description: "Você busca liberdade e novas experiências. Sua curiosidade te leva a descobrir caminhos que outros nem imaginam."
   },
   "Rebelde": {
-    emoji: "⚡",
+    emoji: "🔥",
     description: "Você questiona o status quo e não tem medo de ser diferente. Sua autenticidade abre portas para mudanças necessárias."
   },
   "Amante": {
-    emoji: "🔥",
+    emoji: "❤️",
     description: "Você valoriza conexões profundas e momentos de intimidade. Sua paixão pela vida contagia quem está perto."
   },
   "Criador": {
@@ -178,7 +287,7 @@ const ARCHETYPE_DATA: Record<string, { emoji: string; description: string }> = {
     description: "Você busca entender o mundo em profundidade. Seu conhecimento e reflexão trazem clareza para situações complexas."
   },
   "Mago": {
-    emoji: "🔮",
+    emoji: "✨",
     description: "Você acredita em transformação e faz acontecer. Sua visão de possibilidades transforma sonhos em realidade."
   },
   "Governante": {
@@ -194,6 +303,11 @@ const COMBINED_INSIGHTS: Record<string, string> = {
   "Cuidador+Sábio": "Sua essência de Cuidador e Sábio te torna alguém que oferece não apenas apoio emocional, mas também orientação valiosa. As pessoas confiam em você para momentos importantes.",
   "Explorador+Bobo da Corte": "Como Explorador e Bobo da Corte, você traz alegria e aventura por onde passa. Sua energia contagiante e espírito livre inspiram outros a viverem mais intensamente.",
   "Sábio+Governante": "Sua combinação de Sábio e Governante te dá uma visão estratégica poderosa. Você consegue analisar situações com profundidade e tomar decisões que guiam outros ao sucesso.",
+  "Herói+Sábio": "Como Herói e Sábio, você une coragem com sabedoria. Você enfrenta desafios com inteligência e inspira outros com sua determinação estratégica.",
+  "Mago+Criador": "Sua combinação de Mago e Criador te permite transformar ideias em realidade de formas surpreendentes. Você vê possibilidades onde outros veem obstáculos.",
+  "Cuidador+Amante": "Como Cuidador e Amante, você cultiva relacionamentos profundos e significativos. Sua capacidade de amar e cuidar cria laços duradouros.",
+  "Governante+Herói": "Sua essência de Governante e Herói te dá uma presença de liderança inspiradora. Você lidera pelo exemplo e conquista respeito naturalmente.",
+  "Rebelde+Explorador": "Como Rebelde e Explorador, você desafia convenções e busca seu próprio caminho. Sua sede de liberdade te leva a criar novas possibilidades.",
   "default": "Sua combinação única de arquétipos revela uma personalidade rica e multifacetada. Você possui qualidades que se complementam e criam um equilíbrio especial em quem você é."
 };
 
@@ -207,41 +321,50 @@ function getCombinedInsight(primary: string, secondary: string): string {
 // FUNÇÕES DE CÁLCULO
 // ==========================================
 function calculateProfiles(responses: Record<string, number>) {
-  const discScores = { D: 0, I: 0, S: 0, C: 0 };
   const archetypeScores: Record<string, number> = {};
+  const discScores = { D: 0, I: 0, S: 0, C: 0 };
 
   for (const [questionId, optionIndex] of Object.entries(responses)) {
-    const question = ARCHETYPE_QUESTIONS.find(q => q.id === parseInt(questionId));
-    if (!question) continue;
-
-    const option = question.options[optionIndex];
-    if (!option) continue;
-
-    // Pontuar DISC
-    discScores[option.disc as keyof typeof discScores]++;
-
-    // Pontuar Arquétipo (se existir)
-    if (option.archetype) {
-      archetypeScores[option.archetype] = (archetypeScores[option.archetype] || 0) + 1;
+    const qId = parseInt(questionId);
+    
+    // Perguntas 1-10: Arquétipos
+    if (qId <= 10) {
+      const question = ARCHETYPE_QUESTIONS.find(q => q.id === qId);
+      if (question) {
+        const option = question.options[optionIndex];
+        if (option?.archetype) {
+          archetypeScores[option.archetype] = (archetypeScores[option.archetype] || 0) + 1;
+        }
+      }
+    }
+    // Perguntas 11-20: DISC
+    else if (qId <= 20) {
+      const question = DISC_QUESTIONS.find(q => q.id === qId);
+      if (question) {
+        const option = question.options[optionIndex];
+        if (option?.disc) {
+          discScores[option.disc as keyof typeof discScores]++;
+        }
+      }
     }
   }
 
-  // Calcular perfil DISC
-  const maxDiscScore = Math.max(...Object.values(discScores));
-  const dominantProfiles = Object.entries(discScores)
-    .filter(([_, score]) => score >= maxDiscScore - 1) // Incluir perfis próximos
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 2)
-    .map(([profile]) => profile);
-  const discProfile = dominantProfiles.join("/");
-
-  // Determinar 2 arquétipos principais
+  // Determinar 2 arquétipos principais (das perguntas 1-10)
   const sortedArchetypes = Object.entries(archetypeScores)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 2);
 
   const primaryArchetype = sortedArchetypes[0]?.[0] || "Herói";
   const secondaryArchetype = sortedArchetypes[1]?.[0] || "Sábio";
+
+  // Calcular perfil DISC (das perguntas 11-20)
+  const maxDiscScore = Math.max(...Object.values(discScores));
+  const dominantProfiles = Object.entries(discScores)
+    .filter(([_, score]) => score >= maxDiscScore - 1)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([profile]) => profile);
+  const discProfile = dominantProfiles.join("/");
 
   return { 
     discProfile, 
@@ -354,8 +477,8 @@ serve(async (req) => {
         );
       }
 
-      // Retornar perguntas para formulário novo
-      const questionsForFrontend = ARCHETYPE_QUESTIONS.map(q => ({
+      // Retornar todas as 20 perguntas para o frontend
+      const questionsForFrontend = ALL_QUESTIONS.map(q => ({
         id: q.id,
         text: q.text,
         options: q.options.map(o => o.text)
@@ -432,7 +555,7 @@ serve(async (req) => {
         );
       }
 
-      // Calculate DISC + Archetypes
+      // Calculate Archetypes (from questions 1-10) and DISC (from questions 11-20)
       const { discProfile, discScores, primaryArchetype, secondaryArchetype } = calculateProfiles(responses);
       const combinedInsight = getCombinedInsight(primaryArchetype, secondaryArchetype);
 
@@ -443,11 +566,11 @@ serve(async (req) => {
 
 O participante "${participant.full_name}" respondeu um formulário e seu perfil DISC predominante é: ${discProfile}
 
-Pontuação DISC:
-- Dominância (D): ${discScores.D}/12
-- Influência (I): ${discScores.I}/12
-- Estabilidade (S): ${discScores.S}/12
-- Conformidade (C): ${discScores.C}/12
+Pontuação DISC (de 10 perguntas):
+- Dominância (D): ${discScores.D}/10
+- Influência (I): ${discScores.I}/10
+- Estabilidade (S): ${discScores.S}/10
+- Conformidade (C): ${discScores.C}/10
 
 Arquétipos identificados: ${primaryArchetype} (principal) e ${secondaryArchetype} (secundário)
 
