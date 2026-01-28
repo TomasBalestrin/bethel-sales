@@ -10,7 +10,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, Users, Loader2 } from "lucide-react";
+import { X, Users, Loader2, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface BulkAssignBarProps {
   selectedIds: string[];
@@ -24,6 +35,7 @@ export function BulkAssignBar({ selectedIds, closers, onClear, onComplete }: Bul
   const { toast } = useToast();
   const [selectedCloser, setSelectedCloser] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleAssign = async () => {
     if (!selectedCloser || !profile) {
@@ -91,6 +103,61 @@ export function BulkAssignBar({ selectedIds, closers, onClear, onComplete }: Bul
         {isAssigning && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
         Atribuir
       </Button>
+
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="destructive" disabled={isDeleting}>
+            {isDeleting ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Trash2 className="h-4 w-4 mr-2" />
+            )}
+            Excluir ({selectedIds.length})
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Participantes</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>Tem certeza que deseja excluir <strong>{selectedIds.length} participante(s)</strong>?</p>
+              <p>Esta ação irá remover permanentemente:</p>
+              <ul className="list-disc list-inside text-sm space-y-1">
+                <li>Histórico de vendas</li>
+                <li>Formulários DISC e respostas</li>
+                <li>Atribuições de closer</li>
+              </ul>
+              <p className="font-medium text-destructive">Esta ação não pode ser desfeita.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                setIsDeleting(true);
+                const { error } = await supabase
+                  .from("participants")
+                  .delete()
+                  .in("id", selectedIds);
+                setIsDeleting(false);
+                if (error) {
+                  toast({ variant: "destructive", title: "Erro", description: error.message });
+                  return;
+                }
+                toast({
+                  title: "Participantes excluídos",
+                  description: `${selectedIds.length} participante(s) removido(s) com sucesso.`,
+                });
+                onComplete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Button variant="ghost" size="icon" onClick={onClear}>
         <X className="h-4 w-4" />

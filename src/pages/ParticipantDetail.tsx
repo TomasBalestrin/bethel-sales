@@ -27,7 +27,18 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Copy, Check, ExternalLink, ArrowLeft } from "lucide-react";
+import { Loader2, Copy, Check, ExternalLink, ArrowLeft, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { SalesTab } from "@/components/participants/SalesTab";
 import { cn } from "@/lib/utils";
 
@@ -98,6 +109,7 @@ export default function ParticipantDetail() {
   const [closers, setClosers] = useState<Array<{ id: string; full_name: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isSaleDialogOpen, setIsSaleDialogOpen] = useState(false);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [discFormUrl, setDiscFormUrl] = useState<string | null>(null);
@@ -840,15 +852,71 @@ export default function ParticipantDetail() {
           )}
         </TabsContent>
 
-        <TabsContent value="acoes" className="mt-6 space-y-4">
-          {isAdmin && (
-            <Button onClick={() => setIsAssignDialogOpen(true)} variant="outline" className="w-full">
-              Atribuir Closer
+        <TabsContent value="acoes" className="mt-6 space-y-6">
+          <div className="space-y-4">
+            {isAdmin && (
+              <Button onClick={() => setIsAssignDialogOpen(true)} variant="outline" className="w-full">
+                Atribuir Closer
+              </Button>
+            )}
+            <Button onClick={() => setIsSaleDialogOpen(true)} className="w-full bg-qualification-super hover:bg-qualification-super/90">
+              💰 Venda Realizada
             </Button>
+          </div>
+
+          {/* Danger Zone - Admin Only */}
+          {isAdmin && (
+            <div className="pt-6 border-t border-destructive/20">
+              <h3 className="text-sm font-medium text-destructive mb-4">Zona de Perigo</h3>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir Participante
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir Participante</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-3">
+                      <p>Tem certeza que deseja excluir <strong>"{participant.full_name}"</strong>?</p>
+                      <p>Esta ação irá remover permanentemente:</p>
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        <li>Histórico de vendas</li>
+                        <li>Formulário DISC e respostas</li>
+                        <li>Atribuições de closer</li>
+                      </ul>
+                      <p className="font-medium text-destructive">Esta ação não pode ser desfeita.</p>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={async () => {
+                        setIsDeleting(true);
+                        const { error } = await supabase
+                          .from("participants")
+                          .delete()
+                          .eq("id", participant.id);
+                        setIsDeleting(false);
+                        if (error) {
+                          toast({ variant: "destructive", title: "Erro", description: error.message });
+                          return;
+                        }
+                        toast({ title: "Participante excluído", description: "O participante foi removido com sucesso." });
+                        navigate("/participantes");
+                      }}
+                      disabled={isDeleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           )}
-          <Button onClick={() => setIsSaleDialogOpen(true)} className="w-full bg-qualification-super hover:bg-qualification-super/90">
-            💰 Venda Realizada
-          </Button>
         </TabsContent>
       </Tabs>
 
