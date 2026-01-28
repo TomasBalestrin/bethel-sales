@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
@@ -385,6 +385,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -507,6 +508,42 @@ serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+
+        // Reprocess is an admin-only operation (costly / uses AI credits)
+        const authHeader = req.headers.get("Authorization") ?? "";
+        if (!authHeader) {
+          return new Response(
+            JSON.stringify({ error: "Não autorizado" }),
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: authHeader } },
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
+
+        const { data: { user }, error: userError } = await userClient.auth.getUser();
+        if (userError || !user) {
+          return new Response(
+            JSON.stringify({ error: "Não autorizado" }),
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const { data: adminRole } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+
+        if (!adminRole) {
+          return new Response(
+            JSON.stringify({ error: "Apenas administradores podem reprocessar a análise" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
         
         console.log("Reprocessing analysis for participant:", participant_id);
         
@@ -552,7 +589,7 @@ serve(async (req) => {
           );
         }
         
-        const discScores = discResponse.disc_scores || { D: 0, I: 0, S: 0, C: 0 };
+        const discScores = (discResponse.disc_scores as any) || { D: 0, I: 0, S: 0, C: 0 };
         const discProfile = discResponse.disc_profile || "D";
         const primaryArchetype = discResponse.primary_archetype || "Herói";
         const secondaryArchetype = discResponse.secondary_archetype || "Sábio";
@@ -612,16 +649,25 @@ IMPORTANTE:
 - Considere a combinação DISC + Arquétipo para insights únicos
 - Responda APENAS com o JSON, sem texto adicional`;
 
-        let aiAnalysis = {
-          disc_description: "",
-          sales_insights: "",
-          objecoes: "",
-          contorno_objecoes: "",
-          exemplos_fechamento: "",
-          approach_tip: "",
-          alerts: [] as string[],
-          disc_label: "",
+        const toText = (v: unknown) => {
+          if (!v) return "";
+          if (typeof v === "string") return v;
+          if (Array.isArray(v)) return v.map((x) => `- ${String(x)}`).join("\n");
+          return JSON.stringify(v);
         };
+
+        type AiAnalysis = {
+          disc_description: string;
+          sales_insights: string;
+          objecoes: string;
+          contorno_objecoes: string;
+          exemplos_fechamento: string;
+          approach_tip: string;
+          alerts: string[];
+          disc_label: string;
+        };
+
+        let aiAnalysis: AiAnalysis | null = null;
 
         try {
           console.log("Calling AI for reprocessing...");
@@ -640,31 +686,117 @@ IMPORTANTE:
             }),
           });
 
-          if (aiResponse.ok) {
-            const aiData = await aiResponse.json();
-            const content = aiData.choices?.[0]?.message?.content || "";
-            console.log("AI response received, parsing...");
-            
+          const raw = await aiResponse.text();
+          if (!aiResponse.ok) {
+            console.error("AI response not ok:", raw);
+
+            // Surface common gateway errors to the client
+            if (aiResponse.status === 402) {
+              return new Response(
+                JSON.stringify({ error: "Sem créditos de IA no momento. Adicione créditos e tente novamente." }),
+                { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+            if (aiResponse.status === 429) {
+              return new Response(
+                JSON.stringify({ error: "Muitas requisições para IA. Aguarde um pouco e tente novamente." }),
+                { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+
+            return new Response(
+              JSON.stringify({ error: "Falha ao gerar análise de IA" }),
+              { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          let aiData: any;
+          try {
+            aiData = JSON.parse(raw);
+          } catch {
+            console.error("AI response not valid JSON (envelope):", raw.slice(0, 500));
+            return new Response(
+              JSON.stringify({ error: "Resposta inválida da IA" }),
+              { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          const content = aiData.choices?.[0]?.message?.content as string | undefined;
+          if (!content || !content.trim()) {
+            console.error("AI response missing content:", raw.slice(0, 500));
+            return new Response(
+              JSON.stringify({ error: "Resposta vazia da IA" }),
+              { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          console.log("AI response received, parsing...");
+
+          let parsed: any | null = null;
+          try {
+            parsed = JSON.parse(content);
+          } catch {
             const jsonMatch = content.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-              const parsed = JSON.parse(jsonMatch[0]);
-              aiAnalysis = {
-                disc_description: parsed.disc_description || "",
-                sales_insights: typeof parsed.sales_insights === "string" ? parsed.sales_insights : JSON.stringify(parsed.sales_insights),
-                objecoes: typeof parsed.objecoes === "string" ? parsed.objecoes : JSON.stringify(parsed.objecoes),
-                contorno_objecoes: typeof parsed.contorno_objecoes === "string" ? parsed.contorno_objecoes : JSON.stringify(parsed.contorno_objecoes),
-                exemplos_fechamento: typeof parsed.exemplos_fechamento === "string" ? parsed.exemplos_fechamento : JSON.stringify(parsed.exemplos_fechamento),
-                approach_tip: parsed.approach_tip || "",
-                alerts: Array.isArray(parsed.alerts) ? parsed.alerts : [],
-                disc_label: parsed.disc_label || "",
-              };
-              console.log("AI analysis parsed successfully");
+              try {
+                parsed = JSON.parse(jsonMatch[0]);
+              } catch {
+                parsed = null;
+              }
             }
-          } else {
-            console.error("AI response not ok:", await aiResponse.text());
           }
+
+          if (!parsed) {
+            console.error("Failed to parse AI analysis JSON:", content.slice(0, 800));
+            return new Response(
+              JSON.stringify({ error: "Não foi possível interpretar a resposta da IA" }),
+              { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          aiAnalysis = {
+            disc_description: toText(parsed.disc_description),
+            sales_insights: toText(parsed.sales_insights),
+            objecoes: toText(parsed.objecoes),
+            contorno_objecoes: toText(parsed.contorno_objecoes),
+            exemplos_fechamento: toText(parsed.exemplos_fechamento),
+            approach_tip: toText(parsed.approach_tip),
+            alerts: Array.isArray(parsed.alerts) ? parsed.alerts.map(String) : [],
+            disc_label: toText(parsed.disc_label),
+          };
+
+          const hasAnyInsight =
+            !!aiAnalysis.disc_description ||
+            !!aiAnalysis.sales_insights ||
+            !!aiAnalysis.objecoes ||
+            !!aiAnalysis.contorno_objecoes ||
+            !!aiAnalysis.exemplos_fechamento ||
+            !!aiAnalysis.approach_tip ||
+            (aiAnalysis.alerts?.length ?? 0) > 0 ||
+            !!aiAnalysis.disc_label;
+
+          if (!hasAnyInsight) {
+            console.error("AI returned empty analysis payload");
+            return new Response(
+              JSON.stringify({ error: "A IA retornou uma análise vazia" }),
+              { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          console.log("AI analysis parsed successfully");
         } catch (aiError) {
           console.error("AI analysis error:", aiError);
+          return new Response(
+            JSON.stringify({ error: "Erro ao gerar análise de IA" }),
+            { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        if (!aiAnalysis) {
+          return new Response(
+            JSON.stringify({ error: "Análise de IA não gerada" }),
+            { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
 
         // Update disc_response with new AI analysis
