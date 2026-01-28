@@ -1,24 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Target, TrendingUp, DollarSign, Trophy, Calendar } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Loader2, Users, Target, TrendingUp, DollarSign, Trophy, Calendar, Percent } from "lucide-react";
 
-interface DashboardStats {
-  totalParticipantes: number;
-  credenciadosDia1: number;
-  credenciadosDia2: number;
-  credenciadosDia3: number;
-  totalOportunidades: number;
-  oportunidadesDia1: number;
-  oportunidadesDia2: number;
-  oportunidadesDia3: number;
-  // Qualificação
-  superQualificadas: { count: number; vendas: number; conversao: number; valorVendas: number; valorEntradas: number };
-  medioQualificadas: { count: number; vendas: number; conversao: number; valorVendas: number; valorEntradas: number };
-  baixoQualificadas: { count: number; vendas: number; conversao: number; valorVendas: number; valorEntradas: number };
+interface Participant {
+  id: string;
+  credenciou_dia1: boolean | null;
+  credenciou_dia2: boolean | null;
+  credenciou_dia3: boolean | null;
+  is_oportunidade: boolean | null;
+  qualificacao: "super" | "medio" | "baixo" | null;
+}
+
+interface Sale {
+  id: string;
+  participant_id: string;
+  closer_id: string;
+  valor_total: number;
+  valor_entrada: number | null;
 }
 
 interface TopCloser {
@@ -33,8 +36,15 @@ interface TopCloser {
 export default function Dashboard() {
   const { profile, isAdmin, isCloser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [allParticipants, setAllParticipants] = useState<Participant[]>([]);
+  const [allSales, setAllSales] = useState<Sale[]>([]);
   const [topClosers, setTopClosers] = useState<TopCloser[]>([]);
+  
+  // Filtros
+  const [diaFilter, setDiaFilter] = useState<string>("todos");
+  const [qualFilter, setQualFilter] = useState<string>("todas");
+
+  // Closer stats
   const [closerStats, setCloserStats] = useState<{
     participantesCompareceram: number;
     oportunidadesCompareceram: number;
@@ -51,52 +61,11 @@ export default function Dashboard() {
   const fetchData = async () => {
     setIsLoading(true);
 
-    // Fetch all participants
     const { data: participants } = await supabase.from("participants").select("*");
     const { data: sales } = await supabase.from("sales").select("*");
 
-    const allParticipants = participants || [];
-    const allSales = sales || [];
-
-    // Calculate stats
-    const totalParticipantes = allParticipants.length;
-    const credenciadosDia1 = allParticipants.filter(p => p.credenciou_dia1).length;
-    const credenciadosDia2 = allParticipants.filter(p => p.credenciou_dia2).length;
-    const credenciadosDia3 = allParticipants.filter(p => p.credenciou_dia3).length;
-
-    const oportunidades = allParticipants.filter(p => p.is_oportunidade);
-    const totalOportunidades = oportunidades.length;
-    const oportunidadesDia1 = oportunidades.filter(p => p.credenciou_dia1).length;
-    const oportunidadesDia2 = oportunidades.filter(p => p.credenciou_dia2).length;
-    const oportunidadesDia3 = oportunidades.filter(p => p.credenciou_dia3).length;
-
-    // Qualificação stats
-    const calcQualStats = (qual: string) => {
-      const qualParticipants = oportunidades.filter(p => p.qualificacao === qual);
-      const qualSales = allSales.filter(s => qualParticipants.some(p => p.id === s.participant_id));
-      const count = qualParticipants.length;
-      const vendas = qualSales.length;
-      const valorVendas = qualSales.reduce((sum, s) => sum + (Number(s.valor_total) || 0), 0);
-      const valorEntradas = qualSales.reduce((sum, s) => sum + (Number(s.valor_entrada) || 0), 0);
-      const conversao = count > 0 ? (vendas / count) * 100 : 0;
-      return { count, vendas, conversao, valorVendas, valorEntradas };
-    };
-
-    const newStats: DashboardStats = {
-      totalParticipantes,
-      credenciadosDia1,
-      credenciadosDia2,
-      credenciadosDia3,
-      totalOportunidades,
-      oportunidadesDia1,
-      oportunidadesDia2,
-      oportunidadesDia3,
-      superQualificadas: calcQualStats("super"),
-      medioQualificadas: calcQualStats("medio"),
-      baixoQualificadas: calcQualStats("baixo"),
-    };
-
-    setStats(newStats);
+    setAllParticipants(participants || []);
+    setAllSales(sales || []);
 
     // Fetch top closers
     const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "closer");
@@ -104,7 +73,7 @@ export default function Dashboard() {
       const { data: profiles } = await supabase.from("profiles").select("*").in("user_id", roles.map(r => r.user_id));
       
       const closersWithStats: TopCloser[] = (profiles || []).map(p => {
-        const closerSales = allSales.filter(s => s.closer_id === p.id);
+        const closerSales = (sales || []).filter(s => s.closer_id === p.id);
         return {
           id: p.id,
           full_name: p.full_name,
@@ -127,7 +96,7 @@ export default function Dashboard() {
         .eq("closer_id", profile.id);
 
       const assignedIds = assignments?.map(a => a.participant_id) || [];
-      const assignedParticipants = allParticipants.filter(p => assignedIds.includes(p.id));
+      const assignedParticipants = (participants || []).filter(p => assignedIds.includes(p.id));
       const assignedOportunidades = assignedParticipants.filter(p => p.is_oportunidade);
 
       const participantesCompareceram = assignedParticipants.filter(p => 
@@ -138,7 +107,7 @@ export default function Dashboard() {
         p.credenciou_dia1 || p.credenciou_dia2 || p.credenciou_dia3
       ).length;
 
-      const mySales = allSales.filter(s => s.closer_id === profile.id);
+      const mySales = (sales || []).filter(s => s.closer_id === profile.id);
       const vendas = mySales.length;
       const valorVendas = mySales.reduce((sum, s) => sum + (Number(s.valor_total) || 0), 0);
       const valorEntradas = mySales.reduce((sum, s) => sum + (Number(s.valor_entrada) || 0), 0);
@@ -157,13 +126,42 @@ export default function Dashboard() {
     setIsLoading(false);
   };
 
+  // Estatísticas filtradas
+  const filteredStats = useMemo(() => {
+    // Filtrar por dia
+    let filteredParticipants = allParticipants;
+    if (diaFilter !== "todos") {
+      filteredParticipants = allParticipants.filter(p => {
+        if (diaFilter === "dia1") return p.credenciou_dia1;
+        if (diaFilter === "dia2") return p.credenciou_dia2;
+        if (diaFilter === "dia3") return p.credenciou_dia3;
+        return true;
+      });
+    }
+
+    // Filtrar oportunidades por qualificação
+    let filteredOportunidades = filteredParticipants.filter(p => p.is_oportunidade);
+    if (qualFilter !== "todas") {
+      filteredOportunidades = filteredOportunidades.filter(p => p.qualificacao === qualFilter);
+    }
+
+    // Calcular vendas relacionadas às oportunidades filtradas
+    const filteredSales = allSales.filter(s => 
+      filteredOportunidades.some(p => p.id === s.participant_id)
+    );
+
+    const totalParticipantes = filteredParticipants.length;
+    const totalOportunidades = filteredOportunidades.length;
+    const totalVendas = filteredSales.length;
+    const taxaConversao = totalOportunidades > 0 ? (totalVendas / totalOportunidades) * 100 : 0;
+    const valorVendas = filteredSales.reduce((sum, s) => sum + (Number(s.valor_total) || 0), 0);
+    const valorEntradas = filteredSales.reduce((sum, s) => sum + (Number(s.valor_entrada) || 0), 0);
+
+    return { totalParticipantes, totalOportunidades, totalVendas, taxaConversao, valorVendas, valorEntradas };
+  }, [allParticipants, allSales, diaFilter, qualFilter]);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-  };
-
-  const formatPercent = (value: number, total: number) => {
-    if (total === 0) return "0%";
-    return `${((value / total) * 100).toFixed(1)}%`;
   };
 
   const getInitials = (name: string) => name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
@@ -186,117 +184,98 @@ export default function Dashboard() {
       </div>
 
       {/* Admin Dashboard */}
-      {isAdmin && stats && (
+      {isAdmin && (
         <>
-          {/* Participantes */}
-          <div>
-            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <Users className="h-5 w-5" /> Participantes
-            </h2>
-            <div className="grid gap-4 md:grid-cols-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{stats.totalParticipantes}</div>
-                </CardContent>
-              </Card>
-              {[
-                { label: "Dia 1", value: stats.credenciadosDia1 },
-                { label: "Dia 2", value: stats.credenciadosDia2 },
-                { label: "Dia 3", value: stats.credenciadosDia3 },
-              ].map(item => (
-                <Card key={item.label}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5" /> {item.label}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{item.value}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {formatPercent(item.value, stats.totalParticipantes)} do total
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+          {/* Filtros */}
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <ToggleGroup type="single" value={diaFilter} onValueChange={(v) => v && setDiaFilter(v)}>
+                <ToggleGroupItem value="todos" size="sm">Todos</ToggleGroupItem>
+                <ToggleGroupItem value="dia1" size="sm">Dia 1</ToggleGroupItem>
+                <ToggleGroupItem value="dia2" size="sm">Dia 2</ToggleGroupItem>
+                <ToggleGroupItem value="dia3" size="sm">Dia 3</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-muted-foreground" />
+              <ToggleGroup type="single" value={qualFilter} onValueChange={(v) => v && setQualFilter(v)}>
+                <ToggleGroupItem value="todas" size="sm">Todas</ToggleGroupItem>
+                <ToggleGroupItem value="super" size="sm" className="data-[state=on]:bg-qualification-super/20 data-[state=on]:text-qualification-super">Super</ToggleGroupItem>
+                <ToggleGroupItem value="medio" size="sm" className="data-[state=on]:bg-qualification-medio/20 data-[state=on]:text-qualification-medio">Médio</ToggleGroupItem>
+                <ToggleGroupItem value="baixo" size="sm" className="data-[state=on]:bg-qualification-baixo/20 data-[state=on]:text-qualification-baixo">Baixo</ToggleGroupItem>
+              </ToggleGroup>
             </div>
           </div>
 
-          {/* Oportunidades */}
-          <div>
-            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <Target className="h-5 w-5" /> Oportunidades
-            </h2>
-            <div className="grid gap-4 md:grid-cols-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{stats.totalOportunidades}</div>
-                </CardContent>
-              </Card>
-              {[
-                { label: "Dia 1", value: stats.oportunidadesDia1 },
-                { label: "Dia 2", value: stats.oportunidadesDia2 },
-                { label: "Dia 3", value: stats.oportunidadesDia3 },
-              ].map(item => (
-                <Card key={item.label}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5" /> {item.label}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{item.value}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {formatPercent(item.value, stats.totalOportunidades)} do total
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+          {/* 6 KPIs */}
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <Users className="h-4 w-4" /> Participantes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{filteredStats.totalParticipantes}</div>
+              </CardContent>
+            </Card>
 
-          {/* Qualificação */}
-          <div className="grid gap-4 md:grid-cols-3">
-            {[
-              { label: "Super Qualificadas", data: stats.superQualificadas, color: "bg-qualification-super/10 border-qualification-super/30", textColor: "text-qualification-super" },
-              { label: "Médio Qualificadas", data: stats.medioQualificadas, color: "bg-qualification-medio/10 border-qualification-medio/30", textColor: "text-qualification-medio" },
-              { label: "Baixo Qualificadas", data: stats.baixoQualificadas, color: "bg-qualification-baixo/10 border-qualification-baixo/30", textColor: "text-qualification-baixo" },
-            ].map(item => (
-              <Card key={item.label} className={`border-2 ${item.color}`}>
-                <CardHeader className="pb-2">
-                  <CardTitle className={`text-sm font-medium ${item.textColor}`}>{item.label}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-5 gap-4 text-center">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Quantidade</p>
-                      <p className="text-lg font-bold">{item.data.count}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Vendas</p>
-                      <p className="text-lg font-bold">{item.data.vendas}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Conversão</p>
-                      <p className="text-lg font-bold">{item.data.conversao.toFixed(1)}%</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Valor Vendas</p>
-                      <p className="text-lg font-bold">{formatCurrency(item.data.valorVendas)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Entradas</p>
-                      <p className="text-lg font-bold">{formatCurrency(item.data.valorEntradas)}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <Target className="h-4 w-4" /> Oportunidades
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{filteredStats.totalOportunidades}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <TrendingUp className="h-4 w-4" /> Vendas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{filteredStats.totalVendas}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <Percent className="h-4 w-4" /> Conversão
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{filteredStats.taxaConversao.toFixed(1)}%</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <DollarSign className="h-4 w-4" /> Valor Vendas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(filteredStats.valorVendas)}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <DollarSign className="h-4 w-4" /> Entradas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-primary">{formatCurrency(filteredStats.valorEntradas)}</div>
+              </CardContent>
+            </Card>
           </div>
         </>
       )}
