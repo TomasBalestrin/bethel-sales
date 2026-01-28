@@ -271,26 +271,28 @@ export default function Dashboard() {
                 <CardHeader className="pb-2">
                   <CardTitle className={`text-sm font-medium ${item.textColor}`}>{item.label}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-sm">Quantidade</span>
-                    <span className="font-semibold">{item.data.count}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-sm">Vendas</span>
-                    <span className="font-semibold">{item.data.vendas}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-sm">Conversão</span>
-                    <span className="font-semibold">{item.data.conversao.toFixed(1)}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-sm">Valor Vendas</span>
-                    <span className="font-semibold">{formatCurrency(item.data.valorVendas)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground text-sm">Valor Entradas</span>
-                    <span className="font-semibold">{formatCurrency(item.data.valorEntradas)}</span>
+                <CardContent>
+                  <div className="grid grid-cols-5 gap-4 text-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Quantidade</p>
+                      <p className="text-lg font-bold">{item.data.count}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Vendas</p>
+                      <p className="text-lg font-bold">{item.data.vendas}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Conversão</p>
+                      <p className="text-lg font-bold">{item.data.conversao.toFixed(1)}%</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Valor Vendas</p>
+                      <p className="text-lg font-bold">{formatCurrency(item.data.valorVendas)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Entradas</p>
+                      <p className="text-lg font-bold">{formatCurrency(item.data.valorEntradas)}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
