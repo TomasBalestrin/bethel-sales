@@ -189,64 +189,48 @@ export default function DiscFormPage() {
   // Initial loading
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#0f172a] via-[#1e3a5f] to-[#1e4a7a]">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
   // Error screen
   if (currentScreen === "error" && error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100">
-        <ErrorScreen message={error} />
-      </div>
-    );
+    return <ErrorScreen message={error} />;
   }
 
   // Result screen
   if (currentScreen === "result" && result) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100">
-        <ResultScreen result={result} participantName={participantName} />
-      </div>
-    );
+    return <ResultScreen result={result} participantName={participantName} />;
   }
 
   // Loading screen
   if (currentScreen === "loading") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100">
-        <LoadingScreen />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   // Welcome screen
   if (currentScreen === "welcome") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100">
-        <WelcomeScreen participantName={participantName} onStart={handleNext} />
-      </div>
-    );
+    return <WelcomeScreen participantName={participantName} onStart={handleNext} />;
   }
 
   // Open questions screen
   if (currentScreen === "open") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100">
+      <div className="min-h-screen bg-gradient-to-b from-[#0f172a] via-[#1e3a5f] to-[#1e4a7a]">
         <OpenQuestionsScreen
           openAnswers={openAnswers}
           onOpenAnswerChange={handleOpenAnswerChange}
         />
         
         {/* Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-purple-100 p-4 safe-area-inset-bottom">
+        <div className="fixed bottom-0 left-0 right-0 bg-[#0f172a]/95 backdrop-blur-sm border-t border-white/10 p-4 safe-area-inset-bottom">
           <div className="max-w-2xl mx-auto flex gap-3">
             <Button
               variant="outline"
               onClick={handleBack}
-              className="flex-1 h-12 rounded-xl border-purple-200"
+              className="flex-1 h-12 rounded-xl border-white/30 text-white hover:bg-white/10 hover:text-white"
             >
               <ChevronLeft className="w-4 h-4 mr-1" />
               Voltar
@@ -254,7 +238,7 @@ export default function DiscFormPage() {
             <Button
               onClick={handleNext}
               disabled={isSubmitting}
-              className="flex-1 h-12 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              className="flex-1 h-12 rounded-xl bg-white text-[#1e3a5f] hover:bg-gray-100"
             >
               {isSubmitting ? (
                 <>
@@ -278,7 +262,7 @@ export default function DiscFormPage() {
 
   // Questions screen
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100">
+    <div className="min-h-screen bg-gradient-to-b from-[#0f172a] via-[#1e3a5f] to-[#1e4a7a]">
       <QuestionBlock
         questions={getCurrentBlockQuestions()}
         responses={responses}
@@ -288,12 +272,12 @@ export default function DiscFormPage() {
       />
       
       {/* Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-purple-100 p-4 safe-area-inset-bottom">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#0f172a]/95 backdrop-blur-sm border-t border-white/10 p-4 safe-area-inset-bottom">
         <div className="max-w-2xl mx-auto flex gap-3">
           <Button
             variant="outline"
             onClick={handleBack}
-            className="flex-1 h-12 rounded-xl border-purple-200"
+            className="flex-1 h-12 rounded-xl border-white/30 text-white hover:bg-white/10 hover:text-white"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
             Voltar
@@ -301,7 +285,7 @@ export default function DiscFormPage() {
           <Button
             onClick={handleNext}
             disabled={!isBlockComplete()}
-            className="flex-1 h-12 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50"
+            className="flex-1 h-12 rounded-xl bg-white text-[#1e3a5f] hover:bg-gray-100 disabled:opacity-50"
           >
             {currentBlock === TOTAL_BLOCKS ? "Continuar" : "Próximo"}
             <ChevronRight className="w-4 h-4 ml-1" />
