@@ -562,39 +562,69 @@ serve(async (req) => {
       const participant = form.participants;
 
       // Call AI for DISC analysis (oculto para closers)
-      const aiPrompt = `Você é um especialista em perfil comportamental DISC e vendas.
+      const aiPrompt = `Você é um especialista em perfil comportamental DISC, arquétipos e vendas consultivas.
 
-O participante "${participant.full_name}" respondeu um formulário e seu perfil DISC predominante é: ${discProfile}
+O participante "${participant.full_name}" respondeu um formulário completo de autoconhecimento.
 
-Pontuação DISC (de 10 perguntas):
-- Dominância (D): ${discScores.D}/10
-- Influência (I): ${discScores.I}/10
-- Estabilidade (S): ${discScores.S}/10
-- Conformidade (C): ${discScores.C}/10
+=== PERFIL DISC (das 10 perguntas situacionais) ===
+Perfil predominante: ${discProfile}
+Pontuação detalhada:
+- Dominância (D): ${discScores.D}/10 (${discScores.D * 10}%)
+- Influência (I): ${discScores.I}/10 (${discScores.I * 10}%)
+- Estabilidade (S): ${discScores.S}/10 (${discScores.S * 10}%)
+- Conformidade (C): ${discScores.C}/10 (${discScores.C * 10}%)
 
-Arquétipos identificados: ${primaryArchetype} (principal) e ${secondaryArchetype} (secundário)
+=== ARQUÉTIPOS IDENTIFICADOS ===
+- Arquétipo principal: ${primaryArchetype}
+- Arquétipo secundário: ${secondaryArchetype}
+Esta combinação revela uma personalidade que busca ${primaryArchetype === "Herói" ? "desafios e conquistas" : primaryArchetype === "Sábio" ? "conhecimento e verdade" : primaryArchetype === "Cuidador" ? "ajudar e proteger" : primaryArchetype === "Criador" ? "originalidade e expressão" : primaryArchetype === "Governante" ? "controle e liderança" : primaryArchetype === "Explorador" ? "liberdade e descoberta" : primaryArchetype === "Mago" ? "transformação e possibilidades" : primaryArchetype === "Amante" ? "conexão e intimidade" : primaryArchetype === "Rebelde" ? "mudança e autenticidade" : primaryArchetype === "Bobo da Corte" ? "diversão e leveza" : primaryArchetype === "Cara Comum" ? "pertencimento e autenticidade" : "equilíbrio"}.
 
-Dados adicionais do participante:
-- Faturamento: ${participant.faturamento ? `R$ ${participant.faturamento}` : "Não informado"}
-- Nicho: ${participant.nicho || "Não informado"}
-- Maior desafio: ${open_answers?.biggest_challenge || "Não informado"}
-- Mudança desejada: ${open_answers?.desired_change || "Não informado"}
+=== DADOS DO PARTICIPANTE ===
+- Faturamento: ${participant.faturamento || "Não informado"}
+- Lucro líquido: ${participant.lucro_liquido || "Não informado"}
+- Nicho de atuação: ${participant.nicho || "Não informado"}
+- Objetivo no evento: ${participant.objetivo_evento || "Não informado"}
+- Maior dificuldade atual: ${participant.maior_dificuldade || "Não informado"}
 
-Por favor, forneça uma análise completa em formato JSON com os seguintes campos:
-1. "disc_description": Descrição comportamental do perfil (2-3 parágrafos)
-2. "sales_insights": Insights específicos para vender para esta pessoa (3-4 pontos)
-3. "objecoes": Principais objeções de compra previstas (3-4 objeções)
-4. "contorno_objecoes": Como contornar cada objeção listada
-5. "exemplos_fechamento": 2-3 exemplos práticos de frases/abordagens para fechar a venda
+=== RESPOSTAS ABERTAS DO FORMULÁRIO ===
+- Maior desafio declarado: ${open_answers?.biggest_challenge || "Não informado"}
+- Mudança mais desejada: ${open_answers?.desired_change || "Não informado"}
 
-Responda APENAS com o JSON, sem texto adicional.`;
+Com base em TODOS esses dados, forneça uma análise profunda e personalizada em formato JSON:
+
+{
+  "disc_description": "Descrição comportamental detalhada combinando o perfil DISC com os arquétipos. Explique como essa pessoa pensa, decide e se comporta em situações de compra. 2-3 parágrafos bem elaborados.",
+  
+  "disc_label": "Um rótulo descritivo do perfil combinado (ex: 'Líder Visionário', 'Comunicador Estratégico', 'Analítico Cuidadoso', 'Executor Determinado')",
+  
+  "approach_tip": "Uma dica específica e prática de como abordar esta pessoa na venda. Seja direto e acionável (1-2 frases).",
+  
+  "alerts": ["Alerta 1 sobre o que evitar", "Alerta 2 sobre comportamento", "Alerta 3 sobre armadilhas comuns"],
+  
+  "sales_insights": "Insights específicos para vender para esta pessoa, considerando seu perfil DISC, arquétipos, nicho e desafios declarados. Liste 4-5 pontos estratégicos formatados com bullet points.",
+  
+  "objecoes": "Principais objeções de compra previstas para ESTE perfil específico, considerando os desafios que declarou. Liste 4-5 objeções prováveis.",
+  
+  "contorno_objecoes": "Como contornar cada objeção listada, com scripts específicos para o perfil DISC desta pessoa. Seja prático e direto.",
+  
+  "exemplos_fechamento": "3-4 exemplos de frases/abordagens de fechamento personalizadas para este perfil. Inclua gatilhos mentais adequados ao perfil."
+}
+
+IMPORTANTE: 
+- Personalize TUDO com base nos dados fornecidos
+- Use o nicho e desafios declarados para tornar a análise relevante
+- Considere a combinação DISC + Arquétipo para insights únicos
+- Responda APENAS com o JSON, sem texto adicional`;
 
       let aiAnalysis = {
         disc_description: "",
         sales_insights: "",
         objecoes: "",
         contorno_objecoes: "",
-        exemplos_fechamento: ""
+        exemplos_fechamento: "",
+        approach_tip: "",
+        alerts: [] as string[],
+        disc_label: "",
       };
 
       try {
@@ -626,6 +656,9 @@ Responda APENAS com o JSON, sem texto adicional.`;
               objecoes: typeof parsed.objecoes === "string" ? parsed.objecoes : JSON.stringify(parsed.objecoes),
               contorno_objecoes: typeof parsed.contorno_objecoes === "string" ? parsed.contorno_objecoes : JSON.stringify(parsed.contorno_objecoes),
               exemplos_fechamento: typeof parsed.exemplos_fechamento === "string" ? parsed.exemplos_fechamento : JSON.stringify(parsed.exemplos_fechamento),
+              approach_tip: parsed.approach_tip || "",
+              alerts: Array.isArray(parsed.alerts) ? parsed.alerts : [],
+              disc_label: parsed.disc_label || "",
             };
           }
         }
@@ -633,7 +666,7 @@ Responda APENAS com o JSON, sem texto adicional.`;
         console.error("AI analysis error:", aiError);
       }
 
-      // Save response with all data
+      // Save response with all data including new fields
       const { error: saveError } = await supabase
         .from("disc_responses")
         .insert({
@@ -644,7 +677,15 @@ Responda APENAS com o JSON, sem texto adicional.`;
           secondary_archetype: secondaryArchetype,
           archetype_insight: combinedInsight,
           open_answers: open_answers || null,
-          ...aiAnalysis,
+          disc_description: aiAnalysis.disc_description,
+          sales_insights: aiAnalysis.sales_insights,
+          objecoes: aiAnalysis.objecoes,
+          contorno_objecoes: aiAnalysis.contorno_objecoes,
+          exemplos_fechamento: aiAnalysis.exemplos_fechamento,
+          approach_tip: aiAnalysis.approach_tip,
+          alerts: aiAnalysis.alerts,
+          disc_label: aiAnalysis.disc_label,
+          disc_scores: discScores,
           analyzed_at: new Date().toISOString(),
         });
 

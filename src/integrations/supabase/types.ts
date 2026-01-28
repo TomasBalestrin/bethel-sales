@@ -97,12 +97,16 @@ export type Database = {
       }
       disc_responses: {
         Row: {
+          alerts: string[] | null
           analyzed_at: string | null
+          approach_tip: string | null
           archetype_insight: string | null
           contorno_objecoes: string | null
           created_at: string | null
           disc_description: string | null
+          disc_label: string | null
           disc_profile: string | null
+          disc_scores: Json | null
           exemplos_fechamento: string | null
           form_id: string
           id: string
@@ -114,12 +118,16 @@ export type Database = {
           secondary_archetype: string | null
         }
         Insert: {
+          alerts?: string[] | null
           analyzed_at?: string | null
+          approach_tip?: string | null
           archetype_insight?: string | null
           contorno_objecoes?: string | null
           created_at?: string | null
           disc_description?: string | null
+          disc_label?: string | null
           disc_profile?: string | null
+          disc_scores?: Json | null
           exemplos_fechamento?: string | null
           form_id: string
           id?: string
@@ -131,12 +139,16 @@ export type Database = {
           secondary_archetype?: string | null
         }
         Update: {
+          alerts?: string[] | null
           analyzed_at?: string | null
+          approach_tip?: string | null
           archetype_insight?: string | null
           contorno_objecoes?: string | null
           created_at?: string | null
           disc_description?: string | null
+          disc_label?: string | null
           disc_profile?: string | null
+          disc_scores?: Json | null
           exemplos_fechamento?: string | null
           form_id?: string
           id?: string
