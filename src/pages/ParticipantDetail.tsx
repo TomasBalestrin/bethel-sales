@@ -806,14 +806,34 @@ export default function ParticipantDetail() {
                     <Button 
                       onClick={async () => {
                         setIsReprocessing(true);
-                        const { error } = await supabase.functions.invoke("disc-form", {
+                         const { error } = await supabase.functions.invoke("disc-form", {
                           body: { 
                             action: "reprocess",
                             participant_id: participant.id
                           }
                         });
                         if (error) {
-                          toast({ variant: "destructive", title: "Erro", description: "Falha ao reprocessar análise." });
+                           const status = (error as any)?.context?.status as number | undefined;
+                           const body = (error as any)?.context?.body;
+                           const serverMessage =
+                             typeof body === "string"
+                               ? body
+                               : (body && typeof body === "object" && "error" in body)
+                                 ? String((body as any).error)
+                                 : "";
+
+                           const description =
+                             status === 402
+                               ? "Sem créditos de IA no momento. Adicione créditos e tente novamente."
+                               : status === 429
+                                 ? "Muitas requisições para IA. Aguarde um pouco e tente novamente."
+                                 : serverMessage || error.message || "Falha ao reprocessar análise.";
+
+                           toast({
+                             variant: "destructive",
+                             title: status === 402 ? "Sem créditos de IA" : "Erro",
+                             description,
+                           });
                         } else {
                           toast({ title: "Análise reprocessada!", description: "Os insights de IA foram gerados." });
                           fetchDiscData(participant.id);
