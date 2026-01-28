@@ -1,185 +1,318 @@
 
+# Plano: Redesenhar UX da Aba DISC com Visual Aprimorado
 
-# Plano: Simplificar Dashboard com Filtros
+## Objetivo
 
-## Situacao Atual
+Transformar a exibicao atual (cards simples com texto) em um layout visual moderno e intuitivo, similar as imagens de referencia fornecidas:
 
-O dashboard mostra:
-- Participantes: Total + Dia 1, 2, 3 (4 cards)
-- Oportunidades: Total + Dia 1, 2, 3 (4 cards)
-- Qualificacao: 3 cards coloridos (Super/Medio/Baixo)
-- TOP 3 Closers
-
-**Problema**: Muita informacao espalhada, dificil comparar
+1. **Perfil de Arquetipo** com ranking visual e pontuacoes
+2. **Perfil DISC** com barras de progresso coloridas
+3. **Dicas de Abordagem e Alertas** destacados
 
 ## Novo Layout Proposto
 
 ```text
-+------------------------------------------------------------------+
-| Dashboard                                                         |
-| Bem-vindo, Tomas Balestrin! (Administrador)                       |
-+------------------------------------------------------------------+
-| Filtros:  [Todos | Dia 1 | Dia 2 | Dia 3]  [Todas | Super | Medio | Baixo] |
-+------------------------------------------------------------------+
-|                                                                   |
-| +-------------+ +-------------+ +-------------+                   |
-| | Participan. | | Oportunid.  | | Vendas      |                   |
-| |     254     | |     45      | |     12      |                   |
-| +-------------+ +-------------+ +-------------+                   |
-|                                                                   |
-| +-------------+ +-------------+ +-------------+                   |
-| | Conversao   | | Valor Vendas| | Entradas    |                   |
-| |    26.7%    | | R$ 150.000  | | R$ 45.000   |                   |
-| +-------------+ +-------------+ +-------------+                   |
-|                                                                   |
-+------------------------------------------------------------------+
-| TOP 3 Closers (mantido igual)                                     |
-+------------------------------------------------------------------+
-```
++----------------------------------------------------------+
+| Perfil de Arquetipo                                       |
+| Avaliacao em DD/MM/YYYY                                   |
++----------------------------------------------------------+
+| [1o] Heroi ⚔️                                        [15] |
+| [2o] Governante 👑                                   [15] |
+| [3o] Sabio 📚                                        [14] |
++----------------------------------------------------------+
+| Todos os Arquetipos (grid 2 colunas)                     |
+| Heroi          15  |  Governante      15                 |
+| Sabio          14  |  Mago            14                 |
+| Inocente       14  |  Explorador      12                 |
+| Cuidador       11  |  Criador         11                 |
+| Amante         11  |  Bobo da Corte    9                 |
+| Cara Comum      9  |  Rebelde          7                 |
++----------------------------------------------------------+
 
-## Logica dos Filtros
++----------------------------------------------------------+
+| Perfil DISC                                               |
++----------------------------------------------------------+
+| [ I ]     [Badge: Influencia]                            |
+| Comunicador Expressivo                                    |
++----------------------------------------------------------+
+| D - Dominancia      [========----]              50%      |
+| I - Influencia      [============]              75%      |
+| S - Estabilidade    [==----------]              13%      |
+| C - Conformidade    [==========--]              63%      |
++----------------------------------------------------------+
 
-### Filtro de Credenciamento (Dia)
-| Valor | Filtra participantes que... |
-|-------|----------------------------|
-| Todos | Todos os participantes |
-| Dia 1 | `credenciou_dia1 = true` |
-| Dia 2 | `credenciou_dia2 = true` |
-| Dia 3 | `credenciou_dia3 = true` |
++----------------------------------------------------------+
+| 💡 Dica de Abordagem (fundo amarelo claro)               |
+| Use entusiasmo, construa rapport, seja caloroso          |
++----------------------------------------------------------+
+| ⚠️ Alertas (fundo amarelo)                               |
+| Baixa paciencia: seja direto                              |
++----------------------------------------------------------+
 
-### Filtro de Qualificacao
-| Valor | Filtra oportunidades que... |
-|-------|----------------------------|
-| Todas | Todas as oportunidades |
-| Super | `qualificacao = 'super'` |
-| Medio | `qualificacao = 'medio'` |
-| Baixo | `qualificacao = 'baixo'` |
-
-### Calculo dos KPIs com Filtros
-
-```typescript
-// Aplicar filtro de dia
-let filteredParticipants = allParticipants;
-if (diaFilter !== "todos") {
-  filteredParticipants = allParticipants.filter(p => {
-    if (diaFilter === "dia1") return p.credenciou_dia1;
-    if (diaFilter === "dia2") return p.credenciou_dia2;
-    if (diaFilter === "dia3") return p.credenciou_dia3;
-    return true;
-  });
-}
-
-// Aplicar filtro de qualificacao
-let filteredOportunidades = filteredParticipants.filter(p => p.is_oportunidade);
-if (qualFilter !== "todas") {
-  filteredOportunidades = filteredOportunidades.filter(p => p.qualificacao === qualFilter);
-}
-
-// Calcular KPIs
-const totalParticipantes = filteredParticipants.length;
-const totalOportunidades = filteredOportunidades.length;
-const filteredSales = allSales.filter(s => 
-  filteredOportunidades.some(p => p.id === s.participant_id)
-);
-const totalVendas = filteredSales.length;
-const taxaConversao = totalOportunidades > 0 
-  ? (totalVendas / totalOportunidades) * 100 
-  : 0;
-const valorVendas = filteredSales.reduce((sum, s) => sum + Number(s.valor_total), 0);
-const valorEntradas = filteredSales.reduce((sum, s) => sum + Number(s.valor_entrada), 0);
++----------------------------------------------------------+
+| Insights para Venda (expansivel)                          |
++----------------------------------------------------------+
+| Possiveis Objecoes (expansivel)                           |
++----------------------------------------------------------+
+| Como Contornar (expansivel)                               |
++----------------------------------------------------------+
+| Exemplos de Fechamento (expansivel)                       |
++----------------------------------------------------------+
 ```
 
 ## Implementacao Tecnica
 
-### 1. Novos Estados para Filtros
+### 1. Calcular Pontuacoes dos Arquetipos a partir das Respostas
+
+O campo `responses` ja contem as respostas do usuario. Precisamos calcular os scores de cada arquetipo baseado nas perguntas 1-10:
 
 ```typescript
-const [diaFilter, setDiaFilter] = useState<"todos" | "dia1" | "dia2" | "dia3">("todos");
-const [qualFilter, setQualFilter] = useState<"todas" | "super" | "medio" | "baixo">("todas");
-```
-
-### 2. Interface de Filtros (ToggleGroup)
-
-```typescript
-<div className="flex flex-wrap gap-4 items-center">
-  <div className="flex items-center gap-2">
-    <Calendar className="h-4 w-4 text-muted-foreground" />
-    <ToggleGroup type="single" value={diaFilter} onValueChange={setDiaFilter}>
-      <ToggleGroupItem value="todos">Todos</ToggleGroupItem>
-      <ToggleGroupItem value="dia1">Dia 1</ToggleGroupItem>
-      <ToggleGroupItem value="dia2">Dia 2</ToggleGroupItem>
-      <ToggleGroupItem value="dia3">Dia 3</ToggleGroupItem>
-    </ToggleGroup>
-  </div>
+const calculateArchetypeScores = (responses: Record<string, number>) => {
+  const ARCHETYPE_MAP = {
+    1: ["Inocente", "Heroi", "Sabio", "Explorador", "Mago", "Cuidador"],
+    2: ["Governante", "Amante", "Rebelde", "Bobo da Corte", "Cara Comum", "Criador"],
+    // ... Q3-Q10
+  };
   
-  <div className="flex items-center gap-2">
-    <Target className="h-4 w-4 text-muted-foreground" />
-    <ToggleGroup type="single" value={qualFilter} onValueChange={setQualFilter}>
-      <ToggleGroupItem value="todas">Todas</ToggleGroupItem>
-      <ToggleGroupItem value="super" className="text-qualification-super">Super</ToggleGroupItem>
-      <ToggleGroupItem value="medio" className="text-qualification-medio">Medio</ToggleGroupItem>
-      <ToggleGroupItem value="baixo" className="text-qualification-baixo">Baixo</ToggleGroupItem>
-    </ToggleGroup>
+  const scores: Record<string, number> = {};
+  // Calcular pontuacao de cada arquetipo
+  return Object.entries(scores).sort((a,b) => b[1] - a[1]);
+};
+```
+
+### 2. Calcular Porcentagens DISC
+
+O perfil DISC vem das perguntas 11-20 (10 perguntas total):
+
+```typescript
+const calculateDiscPercentages = (responses: Record<string, number>) => {
+  const discScores = { D: 0, I: 0, S: 0, C: 0 };
+  // Contar respostas 11-20
+  const total = 10; // 10 perguntas DISC
+  return {
+    D: (discScores.D / total) * 100,
+    I: (discScores.I / total) * 100,
+    S: (discScores.S / total) * 100,
+    C: (discScores.C / total) * 100
+  };
+};
+```
+
+### 3. Criar Componente de Barra de Progresso Colorida
+
+```typescript
+const DiscBar = ({ label, value, color }: { label: string; value: number; color: string }) => (
+  <div className="space-y-1">
+    <div className="flex justify-between text-sm">
+      <span>{label}</span>
+      <span className="font-medium">{value}%</span>
+    </div>
+    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+      <div 
+        className="h-full rounded-full transition-all" 
+        style={{ width: `${value}%`, backgroundColor: color }}
+      />
+    </div>
   </div>
-</div>
+);
 ```
 
-### 3. Grid de 6 KPIs
+### 4. Cores das Barras DISC
+
+| Perfil | Cor | Hex |
+|--------|-----|-----|
+| D - Dominancia | Vermelho | #EF4444 |
+| I - Influencia | Amarelo | #EAB308 |
+| S - Estabilidade | Verde | #22C55E |
+| C - Conformidade | Azul | #3B82F6 |
+
+### 5. Gerar Dica de Abordagem e Alertas
+
+Baseado no perfil DISC dominante, gerar dicas especificas:
 
 ```typescript
-<div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
-  <Card>
-    <CardHeader className="pb-2">
-      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-        <Users className="h-4 w-4" /> Participantes
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="text-3xl font-bold">{filteredStats.totalParticipantes}</div>
-    </CardContent>
-  </Card>
-  
-  {/* Oportunidades, Vendas, Conversao, Valor Vendas, Valor Entradas */}
-</div>
+const DISC_TIPS: Record<string, { tip: string; alerts: string[] }> = {
+  D: {
+    tip: "Seja direto, foque em resultados e nao enrole",
+    alerts: ["Impaciente com detalhes", "Quer controle da situacao"]
+  },
+  I: {
+    tip: "Use entusiasmo, construa rapport, seja caloroso",
+    alerts: ["Baixa paciencia: seja direto", "Precisa de reconhecimento"]
+  },
+  S: {
+    tip: "Seja paciente, construa confianca, de seguranca",
+    alerts: ["Resiste a mudancas bruscas", "Precisa de tempo para decidir"]
+  },
+  C: {
+    tip: "Apresente dados, seja preciso, responda com fatos",
+    alerts: ["Analisa muito antes de decidir", "Desconfia de promessas vagas"]
+  }
+};
 ```
 
-### 4. Recalcular ao Mudar Filtros
+### 6. Estrutura do Novo Componente
+
+Criar novo componente `DiscProfileDisplay.tsx`:
 
 ```typescript
-// Usar useMemo para recalcular stats baseado nos filtros
-const filteredStats = useMemo(() => {
-  // ... logica de filtragem
-  return { totalParticipantes, totalOportunidades, totalVendas, taxaConversao, valorVendas, valorEntradas };
-}, [allParticipants, allSales, diaFilter, qualFilter]);
+interface DiscProfileDisplayProps {
+  discResponse: {
+    disc_profile: string;
+    disc_description: string;
+    sales_insights: string;
+    objecoes: string;
+    contorno_objecoes: string;
+    exemplos_fechamento: string;
+    responses: Record<string, number>;
+    primary_archetype: string;
+    secondary_archetype: string;
+    archetype_insight: string;
+    analyzed_at: string;
+  };
+}
+```
+
+### 7. Aprofundar Analise AI
+
+Atualizar o prompt da Edge Function para incluir mais detalhes com as novas perguntas:
+
+```typescript
+const aiPrompt = `...
+Adicione tambem:
+6. "approach_tip": Uma dica curta de como abordar este cliente (1 frase)
+7. "alerts": Lista de 2-3 alertas importantes sobre o que evitar com este cliente
+8. "disc_label": Um rotulo descritivo do perfil (ex: "Comunicador Expressivo", "Lider Analitico")
+...`;
 ```
 
 ## Arquivos a Modificar
 
 | Arquivo | Alteracao |
 |---------|-----------|
-| `src/pages/Dashboard.tsx` | Adicionar filtros, simplificar KPIs para 6 cards, recalcular baseado em filtros |
+| `src/components/participants/ParticipantPanel.tsx` | Redesenhar TabsContent "disc" com novo layout visual |
+| `src/components/participants/DiscProfileDisplay.tsx` | **CRIAR** - Novo componente para exibicao visual |
+| `supabase/functions/disc-form/index.ts` | Aprofundar prompt AI para incluir approach_tip, alerts, disc_label |
 
-## Estrutura Final da Interface
+## Estrutura Visual Detalhada
 
-```text
-+-- Titulo e Boas-vindas --+
-|                          |
-+-- Filtros (2 grupos) ----+
-| [Todos|D1|D2|D3]         |
-| [Todas|Super|Medio|Baixo]|
-+-- 6 KPIs em Grid --------+
-| Part | Oport | Vendas    |
-| Conv | V.Vnd | Entradas  |
-+--------------------------+
-+-- TOP 3 Closers ---------+
-| (mantido igual)          |
-+--------------------------+
+### Card Perfil de Arquetipo
+
+```typescript
+<Card>
+  <CardHeader className="pb-2">
+    <div className="flex items-center gap-2">
+      <Sparkles className="h-5 w-5 text-purple-500" />
+      <CardTitle className="text-base">Perfil de Arquetipo</CardTitle>
+    </div>
+    <p className="text-xs text-muted-foreground">Avaliacao em {formatDate}</p>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    {/* Top 3 Arquetipos com badges numerados */}
+    <div className="space-y-2">
+      {top3.map((arch, i) => (
+        <div key={arch.name} className={cn(
+          "flex items-center justify-between p-3 rounded-lg",
+          i === 0 && "bg-purple-100 border-l-4 border-purple-500",
+          i === 1 && "bg-gray-50 border-l-4 border-gray-400",
+          i === 2 && "bg-gray-50 border-l-4 border-gray-300"
+        )}>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium">{i+1}o</span>
+            <span className="font-medium">{arch.emoji} {arch.name}</span>
+          </div>
+          <span className="font-bold text-purple-600">{arch.score}</span>
+        </div>
+      ))}
+    </div>
+    
+    {/* Grid todos arquetipos */}
+    <Collapsible>
+      <CollapsibleTrigger>Todos os Arquetipos</CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          {allArchetypes.map(arch => (
+            <div className="flex justify-between">
+              <span>{arch.name}</span>
+              <span>{arch.score}</span>
+            </div>
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  </CardContent>
+</Card>
+```
+
+### Card Perfil DISC
+
+```typescript
+<Card>
+  <CardHeader>
+    <div className="flex items-center gap-2">
+      <Target className="h-5 w-5" />
+      <CardTitle>Perfil DISC</CardTitle>
+    </div>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    {/* Letra dominante + Badge + Label */}
+    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+      <span className="text-4xl font-bold">{dominantLetter}</span>
+      <Badge className="ml-2 bg-yellow-400 text-yellow-900">{discName}</Badge>
+      <p className="text-sm text-muted-foreground mt-1">{discLabel}</p>
+    </div>
+    
+    {/* Barras de progresso */}
+    <div className="space-y-3">
+      <DiscBar label="D - Dominancia" value={50} color="#EF4444" />
+      <DiscBar label="I - Influencia" value={75} color="#EAB308" />
+      <DiscBar label="S - Estabilidade" value={13} color="#22C55E" />
+      <DiscBar label="C - Conformidade" value={63} color="#3B82F6" />
+    </div>
+  </CardContent>
+</Card>
+```
+
+### Cards de Dica e Alerta
+
+```typescript
+{/* Dica de Abordagem */}
+<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+  <div className="flex items-center gap-2 mb-1">
+    <Lightbulb className="h-4 w-4 text-yellow-600" />
+    <span className="font-medium text-sm">Dica de Abordagem</span>
+  </div>
+  <p className="text-sm">{approachTip}</p>
+</div>
+
+{/* Alertas */}
+<div className="bg-amber-100 border border-amber-300 rounded-lg p-4">
+  <div className="flex items-center gap-2 mb-1">
+    <AlertTriangle className="h-4 w-4 text-amber-600" />
+    <span className="font-medium text-sm">Alertas</span>
+  </div>
+  <ul className="text-sm list-disc list-inside">
+    {alerts.map(alert => <li key={alert}>{alert}</li>)}
+  </ul>
+</div>
+```
+
+## Migracao de Dados
+
+Precisamos adicionar campos ao banco para armazenar os novos dados da AI:
+
+```sql
+ALTER TABLE disc_responses 
+ADD COLUMN IF NOT EXISTS approach_tip text,
+ADD COLUMN IF NOT EXISTS alerts text[],
+ADD COLUMN IF NOT EXISTS disc_label text,
+ADD COLUMN IF NOT EXISTS disc_scores jsonb;
 ```
 
 ## Beneficios
 
-1. **Menos poluicao visual**: 6 cards em vez de 11
-2. **Mais flexibilidade**: Filtros permitem analise especifica
-3. **Comparacao facil**: Muda o filtro e ve os numeros atualizarem
-4. **Responsivo**: Grid de 6 se adapta a telas menores
-
+1. **Visual mais intuitivo**: Barras de progresso e rankings visuais
+2. **Informacao rapida**: Dica de abordagem em destaque
+3. **Alertas visiveis**: Closer sabe o que evitar
+4. **Dados completos**: Todos os arquetipos visiveis em grid expansivel
+5. **UX moderna**: Layout similar a apps de personalidade populares
