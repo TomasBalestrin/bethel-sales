@@ -669,38 +669,55 @@ IMPORTANTE:
 
         let aiAnalysis: AiAnalysis | null = null;
 
+        // Use OpenAI API directly
+        const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+        if (!openaiApiKey) {
+          console.error("OPENAI_API_KEY not configured");
+          return new Response(
+            JSON.stringify({ error: "Chave da OpenAI não configurada" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
         try {
-          console.log("Calling AI for reprocessing...");
-          const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          console.log("Calling OpenAI for reprocessing...");
+          const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
-              "Authorization": `Bearer ${lovableApiKey}`,
+              "Authorization": `Bearer ${openaiApiKey}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-3-flash-preview",
+              model: "gpt-4o-mini",
               messages: [
                 { role: "system", content: "Você é um especialista em DISC e vendas. Responda sempre em português brasileiro." },
                 { role: "user", content: aiPrompt }
               ],
+              temperature: 0.7,
             }),
           });
 
           const raw = await aiResponse.text();
           if (!aiResponse.ok) {
-            console.error("AI response not ok:", raw);
+            console.error("OpenAI response not ok:", raw);
 
-            // Surface common gateway errors to the client
-            if (aiResponse.status === 402) {
+            // Surface common OpenAI errors to the client
+            if (aiResponse.status === 401) {
               return new Response(
-                JSON.stringify({ error: "Sem créditos de IA no momento. Adicione créditos e tente novamente." }),
-                { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                JSON.stringify({ error: "Chave da OpenAI inválida ou expirada" }),
+                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
               );
             }
             if (aiResponse.status === 429) {
               return new Response(
-                JSON.stringify({ error: "Muitas requisições para IA. Aguarde um pouco e tente novamente." }),
+                JSON.stringify({ error: "Limite de requisições da OpenAI atingido. Aguarde um pouco e tente novamente." }),
                 { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+            if (aiResponse.status === 402 || aiResponse.status === 403) {
+              return new Response(
+                JSON.stringify({ error: "Conta OpenAI sem saldo ou sem permissão. Verifique seu plano." }),
+                { status: aiResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
               );
             }
 
