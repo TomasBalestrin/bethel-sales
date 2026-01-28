@@ -40,6 +40,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { SalesTab } from "@/components/participants/SalesTab";
+import { DiscProfileDisplay } from "@/components/participants/DiscProfileDisplay";
 import { cn } from "@/lib/utils";
 
 interface Participant {
@@ -792,63 +793,7 @@ export default function ParticipantDetail() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    Perfil DISC
-                    <Badge variant="secondary" className="text-lg">{discResponse.disc_profile}</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm whitespace-pre-wrap">{discResponse.disc_description}</p>
-                </CardContent>
-              </Card>
-
-              {discResponse.sales_insights && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Insights para Venda</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{discResponse.sales_insights}</p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {discResponse.objecoes && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Possíveis Objeções</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{discResponse.objecoes}</p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {discResponse.contorno_objecoes && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Como Contornar</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{discResponse.contorno_objecoes}</p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {discResponse.exemplos_fechamento && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Exemplos de Fechamento</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{discResponse.exemplos_fechamento}</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+            <DiscProfileDisplay discResponse={discResponse} />
           )}
         </TabsContent>
 
