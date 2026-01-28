@@ -1,170 +1,156 @@
 
-# Plano: Botao para Excluir Participantes (Admin)
+# Plano: Corrigir Visualização DISC e Reprocessar Análises
 
-## Objetivo
+## Problema 1: Percentuais DISC Incorretos
 
-Adicionar um botao para admins excluirem participantes do sistema, tanto individualmente (na pagina de detalhes) quanto em massa (selecionando varios na lista).
+### Causa Raiz
+O campo `disc_scores` no banco armazena **contagens absolutas** (ex: `{D:6, I:0, S:3, C:1}`), mas o componente `DiscProfileDisplay` está exibindo esses valores diretamente como percentuais.
 
-## Analise do Banco de Dados
+### Dados Reais do Participante
+| Letra | Contagem | Percentual Correto |
+|-------|----------|-------------------|
+| D     | 6        | 60%               |
+| I     | 0        | 0%                |
+| S     | 3        | 30%               |
+| C     | 1        | 10%               |
 
-As tabelas relacionadas ja possuem `ON DELETE CASCADE`:
-
-| Tabela | Chave Estrangeira | Comportamento |
-|--------|-------------------|---------------|
-| `closer_assignments` | `participant_id` | Excluido automaticamente |
-| `sales` | `participant_id` | Excluido automaticamente |
-| `disc_forms` | `participant_id` | Excluido automaticamente |
-
-A RLS ja permite que admins facam qualquer operacao em participants:
-```sql
-POLICY "Admins can do anything with participants" 
-  FOR ALL USING (is_admin())
-```
-
-Nao precisa de Edge Function - podemos excluir diretamente pelo cliente Supabase.
-
-## Implementacao
-
-### 1. Pagina de Detalhes do Participante
-
-Adicionar botao "Excluir" na aba "Acoes" com dialog de confirmacao:
+### Solução
+Modificar o `DiscProfileDisplay.tsx` para converter corretamente:
 
 ```typescript
-// Estado para controle do dialog
-const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-const [isDeleting, setIsDeleting] = useState(false);
+// Atual (errado):
+const discPercentages = discResponse.disc_scores || calculateDiscPercentages(responses);
 
-// Funcao de exclusao
-const handleDeleteParticipant = async () => {
-  if (!participant) return;
-  setIsDeleting(true);
-  
-  const { error } = await supabase
-    .from("participants")
-    .delete()
-    .eq("id", participant.id);
-  
-  setIsDeleting(false);
-  
-  if (error) {
-    toast({ variant: "destructive", title: "Erro", description: error.message });
-    return;
-  }
-  
-  toast({ title: "Participante excluido" });
-  navigate("/participantes");
+// Corrigido:
+const rawScores = discResponse.disc_scores || calculateDiscScoresFromResponses(responses);
+const total = rawScores.D + rawScores.I + rawScores.S + rawScores.C;
+const discPercentages = {
+  D: Math.round((rawScores.D / Math.max(total, 1)) * 100),
+  I: Math.round((rawScores.I / Math.max(total, 1)) * 100),
+  S: Math.round((rawScores.S / Math.max(total, 1)) * 100),
+  C: Math.round((rawScores.C / Math.max(total, 1)) * 100),
 };
 ```
 
-### 2. Lista de Participantes - Exclusao em Massa
+## Problema 2: Análises de IA Vazias
 
-Adicionar botao de exclusao no `BulkAssignBar` quando participantes estao selecionados:
+### Causa Raiz
+Os campos no banco de dados estão vazios:
+- `sales_insights`: vazio
+- `objecoes`: vazio  
+- `contorno_objecoes`: vazio
+- `exemplos_fechamento`: vazio
+- `approach_tip`: vazio
+- `alerts`: array vazio `[]`
 
-```typescript
-// Novo botao ao lado de "Atribuir"
-<Button 
-  variant="destructive" 
-  onClick={handleBulkDelete}
-  disabled={isDeleting}
->
-  {isDeleting ? <Loader2 /> : <Trash2 />}
-  Excluir ({selectedIds.length})
-</Button>
-```
+A análise da IA não foi salva corretamente quando o formulário foi respondido.
 
-### 3. Dialogs de Confirmacao
-
-Usar `AlertDialog` com aviso claro sobre:
-- Acao irreversivel
-- Dados que serao perdidos (vendas, formularios DISC, atribuicoes)
+### Solução
+Adicionar um botão "Reprocessar Análise" na aba DISC que:
+1. Chama a Edge Function com os dados do participante
+2. Regenera a análise da IA
+3. Atualiza o registro no banco
 
 ## Arquivos a Modificar
 
-| Arquivo | Alteracao |
+| Arquivo | Alteração |
 |---------|-----------|
-| `src/pages/ParticipantDetail.tsx` | Adicionar botao de exclusao na aba Acoes + AlertDialog |
-| `src/components/participants/BulkAssignBar.tsx` | Adicionar botao de exclusao em massa + AlertDialog |
+| `src/components/participants/DiscProfileDisplay.tsx` | Corrigir cálculo de percentuais |
+| `src/pages/ParticipantDetail.tsx` | Adicionar botão "Reprocessar Análise" |
+| `supabase/functions/disc-form/index.ts` | Adicionar endpoint para reprocessar análise |
 
-## Fluxo de Exclusao Individual
+## Implementação Detalhada
 
-```text
-Usuario clica "Excluir Participante"
-        ↓
-AlertDialog abre com aviso
-        ↓
-Usuario confirma
-        ↓
-DELETE FROM participants WHERE id = X
-        ↓
-(CASCADE exclui automaticamente relacionados)
-        ↓
-Toast de sucesso
-        ↓
-Redireciona para /participantes
+### 1. Corrigir DiscProfileDisplay.tsx
+
+```typescript
+// Função para converter scores absolutos em percentuais
+function scoresToPercentages(scores: { D: number; I: number; S: number; C: number }) {
+  const total = scores.D + scores.I + scores.S + scores.C;
+  if (total === 0) return { D: 0, I: 0, S: 0, C: 0 };
+  return {
+    D: Math.round((scores.D / total) * 100),
+    I: Math.round((scores.I / total) * 100),
+    S: Math.round((scores.S / total) * 100),
+    C: Math.round((scores.C / total) * 100),
+  };
+}
+
+// No componente:
+const rawScores = discResponse.disc_scores || calculateRawScores(responses);
+const discPercentages = scoresToPercentages(rawScores);
 ```
 
-## Fluxo de Exclusao em Massa
+### 2. Botão Reprocessar no ParticipantDetail.tsx
 
-```text
-Admin seleciona varios participantes
-        ↓
-Barra de acoes aparece com botao "Excluir"
-        ↓
-Clica em "Excluir"
-        ↓
-AlertDialog mostra quantidade
-        ↓
-Confirma
-        ↓
-DELETE FROM participants WHERE id IN (...)
-        ↓
-Toast de sucesso
-        ↓
-Lista atualiza
+```typescript
+// Novo estado
+const [isReprocessing, setIsReprocessing] = useState(false);
+
+// Função
+const handleReprocessAnalysis = async () => {
+  setIsReprocessing(true);
+  
+  const { error } = await supabase.functions.invoke("disc-form", {
+    body: { 
+      action: "reprocess",
+      participant_id: participant.id
+    }
+  });
+  
+  if (!error) {
+    toast({ title: "Análise reprocessada!" });
+    // Refetch data
+  }
+  setIsReprocessing(false);
+};
+
+// Na UI, junto ao card DISC:
+{!discResponse?.sales_insights && (
+  <Button onClick={handleReprocessAnalysis} disabled={isReprocessing}>
+    <RefreshCcw className="h-4 w-4 mr-2" />
+    Reprocessar Análise IA
+  </Button>
+)}
 ```
 
-## Interface na Aba Acoes
+### 3. Edge Function - Endpoint de Reprocessamento
 
-```text
-+-------------------------------------------+
-| Acoes                                      |
-+-------------------------------------------+
-| [Gerar Formulario DISC]                   |
-|                                           |
-| [Atribuir Closer]                         |
-|                                           |
-| [Registrar Venda]                         |
-|                                           |
-+-------------------------------------------+
-| Zona de Perigo                            |
-+-------------------------------------------+
-| [🗑 Excluir Participante] (vermelho)       |
-+-------------------------------------------+
+Adicionar handler para reprocessar análise de um participante específico:
+
+```typescript
+// POST com action: "reprocess"
+if (action === "reprocess") {
+  const { participant_id } = body;
+  
+  // Buscar participante e disc_response existente
+  const { data: participant } = await supabase
+    .from("participants")
+    .select("*, disc_forms(disc_responses(*))")
+    .eq("id", participant_id)
+    .single();
+  
+  // Chamar IA novamente
+  // Atualizar disc_responses
+}
 ```
 
-## Dialog de Confirmacao
+## Resultado Esperado
 
+### Antes (Atual)
 ```text
-+-------------------------------------------+
-| ⚠️ Excluir Participante                   |
-+-------------------------------------------+
-| Tem certeza que deseja excluir            |
-| "Maria Silva"?                            |
-|                                           |
-| Esta acao ira remover permanentemente:    |
-| • Historico de vendas                     |
-| • Formulario DISC e respostas             |
-| • Atribuicoes de closer                   |
-|                                           |
-| Esta acao nao pode ser desfeita.          |
-|                                           |
-|        [Cancelar]  [Excluir]              |
-+-------------------------------------------+
+Dominância:    6%   ████░░░░░░░░░░░░░░░░
+Influência:    0%   ░░░░░░░░░░░░░░░░░░░░
+Estabilidade:  3%   ███░░░░░░░░░░░░░░░░░
+Conformidade:  1%   █░░░░░░░░░░░░░░░░░░░
 ```
 
-## Seguranca
+### Depois (Correto)
+```text
+Dominância:   60%   ████████████░░░░░░░░
+Influência:    0%   ░░░░░░░░░░░░░░░░░░░░
+Estabilidade: 30%   ██████░░░░░░░░░░░░░░
+Conformidade: 10%   ██░░░░░░░░░░░░░░░░░░
+```
 
-- Botao so aparece para admins (`isAdmin`)
-- RLS ja protege a operacao no banco
-- Confirmacao obrigatoria antes de excluir
-- Nao ha como excluir sem ser admin autenticado
+E com análises da IA visíveis nas seções colapsáveis.
